@@ -14,6 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_items: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          item_id: string
+          quantity: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          quantity?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "moving_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_rooms: {
+        Row: {
+          booking_id: string
+          count: number
+          created_at: string
+          floor: string
+          id: string
+          room: string
+        }
+        Insert: {
+          booking_id: string
+          count?: number
+          created_at?: string
+          floor: string
+          id?: string
+          room: string
+        }
+        Update: {
+          booking_id?: string
+          count?: number
+          created_at?: string
+          floor?: string
+          id?: string
+          room?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_rooms_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "moving_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moving_bookings: {
+        Row: {
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          date_time: string | null
+          from_address: string | null
+          id: string
+          notes: string | null
+          service_type: string
+          status: string
+          to_address: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          date_time?: string | null
+          from_address?: string | null
+          id?: string
+          notes?: string | null
+          service_type?: string
+          status?: string
+          to_address?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          date_time?: string | null
+          from_address?: string | null
+          id?: string
+          notes?: string | null
+          service_type?: string
+          status?: string
+          to_address?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
