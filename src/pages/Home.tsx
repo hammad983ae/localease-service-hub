@@ -125,7 +125,7 @@ const Home: React.FC = () => {
   const firstName = userName.split(' ')[0];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6 max-w-2xl mx-auto">
       {/* Greeting Section */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">
@@ -137,7 +137,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Services Grid */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {services.map((service) => (
           <Card
             key={service.id}
@@ -147,7 +147,7 @@ const Home: React.FC = () => {
             )}
             onClick={() => handleServiceClick(service)}
           >
-            <CardContent className="p-6 flex flex-col items-start space-y-3">
+            <CardContent className="p-4 sm:p-6 flex flex-col items-start space-y-3">
               <div className={cn("p-3 rounded-full", service.color)}>
                 <service.icon className="h-6 w-6" />
               </div>

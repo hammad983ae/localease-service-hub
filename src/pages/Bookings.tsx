@@ -96,7 +96,7 @@ const Bookings: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6 max-w-2xl mx-auto">
         <div className="animate-pulse">
           <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
           <div className="space-y-4">
@@ -110,7 +110,7 @@ const Bookings: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6 max-w-2xl mx-auto">
       {/* Header Section */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">
