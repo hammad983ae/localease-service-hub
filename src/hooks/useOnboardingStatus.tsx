@@ -51,6 +51,8 @@ export const useOnboardingStatus = () => {
 
       if (!error) {
         setOnboardingCompleted(true);
+      } else {
+        console.error('Error updating onboarding status:', error);
       }
     } catch (error) {
       console.error('Error updating onboarding status:', error);

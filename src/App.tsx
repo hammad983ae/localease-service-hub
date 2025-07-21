@@ -42,7 +42,7 @@ const AppRoutes = () => {
         path="/onboarding" 
         element={
           user ? (
-            onboardingCompleted ? <Navigate to="/" /> : <Onboarding />
+            onboardingCompleted === false ? <Onboarding /> : <Navigate to="/" replace />
           ) : (
             <Navigate to="/auth" />
           )
@@ -53,8 +53,8 @@ const AppRoutes = () => {
           index 
           element={
             <ProtectedRoute>
-              {user && !onboardingCompleted ? (
-                <Navigate to="/onboarding" />
+              {user && onboardingCompleted === false ? (
+                <Navigate to="/onboarding" replace />
               ) : (
                 <Home />
               )}
