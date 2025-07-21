@@ -58,7 +58,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Select Your Home Layout
@@ -75,7 +75,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {floors.map((floor) => {
               const isSelected = selectedFloors.includes(floor.id);
               const totalRooms = getTotalRoomsForFloor(floor.id);
@@ -122,7 +122,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {Object.entries(roomTypes).map(([roomId, room]) => {
                   const count = getRoomCount(floorId, roomId);
                   return (

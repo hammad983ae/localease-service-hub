@@ -109,69 +109,73 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   if (isSubmitted) {
     return (
-      <div className="p-6 text-center space-y-6">
-        <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Booking Submitted!</h1>
+            <p className="text-muted-foreground">
+              Your moving request has been received. We'll contact you soon to confirm the details.
+            </p>
+          </div>
+          <Button onClick={onBack} variant="outline">
+            Back to Home
+          </Button>
         </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Booking Submitted!</h1>
-          <p className="text-muted-foreground">
-            Your moving request has been received. We'll contact you soon to confirm the details.
-          </p>
-        </div>
-        <Button onClick={onBack} variant="outline">
-          Back to Home
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-foreground">
-            {getStepTitle()}
-          </h1>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-foreground">
+              {getStepTitle()}
+            </h1>
+          </div>
+          <div className="w-10" />
         </div>
-        <div className="w-10" />
-      </div>
 
-      <div className="flex space-x-2 mb-6">
-        {steps.map((step, index) => (
-          <div
-            key={step}
-            className={`flex-1 h-2 rounded-full transition-all duration-300 ${
-              index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
-            }`}
-          />
-        ))}
-      </div>
+        <div className="flex space-x-2 mb-8 max-w-2xl mx-auto">
+          {steps.map((step, index) => (
+            <div
+              key={step}
+              className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
+              }`}
+            />
+          ))}
+        </div>
 
-      <div className="min-h-[400px]">
-        {renderStep()}
-      </div>
+        <div className="min-h-[400px] mb-8">
+          {renderStep()}
+        </div>
 
-      <div className="flex justify-between pt-4">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={currentStepIndex === 0}
-        >
-          {t('common.back')}
-        </Button>
-        <Button
-          onClick={currentStep === 'summary' ? handleSubmit : handleNext}
-          disabled={isSubmitting}
-        >
-          {currentStep === 'summary' ? 
-            (isSubmitting ? 'Submitting...' : 'Submit Booking') : 
-            t('common.next')
-          }
-        </Button>
+        <div className="flex justify-between pt-4 max-w-2xl mx-auto">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={currentStepIndex === 0}
+          >
+            {t('common.back')}
+          </Button>
+          <Button
+            onClick={currentStep === 'summary' ? handleSubmit : handleNext}
+            disabled={isSubmitting}
+          >
+            {currentStep === 'summary' ? 
+              (isSubmitting ? 'Submitting...' : 'Submit Booking') : 
+              t('common.next')
+            }
+          </Button>
+        </div>
       </div>
     </div>
   );

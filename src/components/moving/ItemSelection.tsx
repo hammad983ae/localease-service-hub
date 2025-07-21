@@ -123,7 +123,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
 
   if (Object.keys(selectedRoomsData).length === 0) {
     return (
-      <div className="text-center space-y-4">
+      <div className="max-w-5xl mx-auto text-center space-y-4">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
           Select Your Items
         </h2>
@@ -133,7 +133,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
   }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
           Select Your Items
@@ -168,7 +168,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
                     <h3 className="text-lg font-semibold mb-4 capitalize">
                       {roomData.room.replace(/([A-Z])/g, ' $1').trim()} ({roomData.count} room{roomData.count !== 1 ? 's' : ''})
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {items.map((item) => {
                         const count = getItemCount(item.id);
                         return (
