@@ -1,86 +1,41 @@
-
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, MapPin, Clock, Package, Truck, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 const Bookings: React.FC = () => {
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Fetch user profile to get the full name
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch bookings
-  const { data: bookings = [], isLoading } = useQuery({
-    queryKey: ['bookings', user?.id],
+  const { data: bookings, isLoading } = useQuery({
+    queryKey: ['bookings', user?.id, statusFilter],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
+      let query = supabase
         .from('moving_bookings')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data } = await query;
       return data || [];
     },
     enabled: !!user,
   });
 
-  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
-  const firstName = userName.split(' ')[0];
-
-  const getServiceIcon = (serviceType: string) => {
-    switch (serviceType) {
-      case 'moving': return Truck;
-      case 'disposal': return Trash2;
-      case 'transport': return Package;
-      default: return Calendar;
-    }
-  };
-
-  const getServiceColor = (serviceType: string) => {
-    switch (serviceType) {
-      case 'moving': return 'bg-blue-50 text-blue-600';
-      case 'disposal': return 'bg-green-50 text-green-600';
-      case 'transport': return 'bg-purple-50 text-purple-600';
-      default: return 'bg-gray-50 text-gray-600';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -89,19 +44,54 @@ const Bookings: React.FC = () => {
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getServiceIcon = (serviceType: string) => {
+    switch (serviceType) {
+      case 'moving':
+        return Truck;
+      case 'disposal':
+        return Trash2;
+      case 'transport':
+        return Car;
+      default:
+        return Package;
+    }
+  };
+
+  const filteredBookings = bookings?.filter(booking => {
+    const matchesSearch = booking.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         booking.from_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         booking.to_address.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }) || [];
+
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
         <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/3 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -110,57 +100,83 @@ const Bookings: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header Section */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">
-          Your Bookings
-        </h1>
-        <p className="text-muted-foreground">
-          Hi {firstName}, here are all your service bookings
-        </p>
+      <div className="space-y-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Your Bookings
+          </h1>
+          <p className="text-muted-foreground">
+            Track and manage all your service bookings
+          </p>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            {['all', 'pending', 'confirmed', 'completed'].map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(status)}
+                className="capitalize"
+              >
+                {status}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Bookings List */}
-      {bookings.length === 0 ? (
+      {/* Bookings Grid */}
+      {filteredBookings.length === 0 ? (
         <div className="text-center py-12">
-          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Calendar className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">No bookings yet</h3>
-          <p className="text-muted-foreground mb-6">
-            You haven't made any service bookings yet. Start by exploring our services.
+          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {searchTerm || statusFilter !== 'all' ? 'No matching bookings' : 'No bookings yet'}
+          </h3>
+          <p className="text-muted-foreground">
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Try adjusting your search or filter criteria'
+              : 'Start by booking a service from the home page'
+            }
           </p>
-          <Button onClick={() => window.location.href = '/'}>
-            Browse Services
-          </Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {bookings.map((booking) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredBookings.map((booking) => {
             const ServiceIcon = getServiceIcon(booking.service_type);
-            const serviceColor = getServiceColor(booking.service_type);
-            
             return (
-              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-3 rounded-full ${serviceColor}`}>
-                        <ServiceIcon className="h-6 w-6" />
+                      <div className="p-2 rounded-full bg-blue-50">
+                        <ServiceIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <CardTitle className="text-lg capitalize">
-                          {booking.service_type} Service
+                          {booking.service_type}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Booking #{booking.id.slice(0, 8)}
+                          Booking #{booking.id.slice(-8)}
                         </p>
                       </div>
                     </div>
                     <Badge 
-                      variant="outline" 
-                      className={cn("text-xs border", getStatusColor(booking.status))}
+                      variant="secondary" 
+                      className={cn("text-xs", getStatusColor(booking.status))}
                     >
                       {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                     </Badge>
@@ -168,53 +184,34 @@ const Bookings: React.FC = () => {
                 </CardHeader>
                 
                 <CardContent className="space-y-3">
-                  {/* Date and Time */}
-                  {booking.date_time && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-foreground">
-                        {formatDate(booking.date_time)}
-                      </span>
-                      <Clock className="h-4 w-4 text-muted-foreground ml-2" />
-                      <span className="text-foreground">
-                        {formatTime(booking.date_time)}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>{formatDate(booking.date_time)}</span>
+                  </div>
                   
-                  {/* Addresses */}
-                  {booking.from_address && (
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{formatTime(booking.date_time)}</span>
+                  </div>
+                  
+                  <div className="space-y-1">
                     <div className="flex items-start space-x-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="space-y-1">
-                        <div>
-                          <span className="text-muted-foreground">From: </span>
-                          <span className="text-foreground">{booking.from_address}</span>
-                        </div>
-                        {booking.to_address && (
-                          <div>
-                            <span className="text-muted-foreground">To: </span>
-                            <span className="text-foreground">{booking.to_address}</span>
-                          </div>
-                        )}
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">From:</p>
+                        <p className="text-muted-foreground">{booking.from_address}</p>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Contact Info */}
-                  {booking.contact_name && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Contact: </span>
-                      <span className="text-foreground">{booking.contact_name}</span>
-                      {booking.contact_phone && (
-                        <span className="text-muted-foreground"> • {booking.contact_phone}</span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Created Date */}
-                  <div className="text-xs text-muted-foreground pt-2 border-t">
-                    Booked on {formatDate(booking.created_at)}
+                    
+                    {booking.to_address && (
+                      <div className="flex items-start space-x-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium">To:</p>
+                          <p className="text-muted-foreground">{booking.to_address}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
