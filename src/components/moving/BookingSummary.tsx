@@ -70,6 +70,13 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
     bike: 'Bicycle',
   };
 
+  const flexibleOptions = {
+    'flexible': 'Flexible timing (we\'ll call to arrange)',
+    'morning': 'Morning (8:00 - 12:00)',
+    'afternoon': 'Afternoon (12:00 - 17:00)',
+    'weekend': 'Weekend preferred'
+  };
+
   const totalRooms = data.rooms.reduce((sum, room) => sum + room.count, 0);
   const totalItems = Object.values(data.items).reduce((sum, count) => sum + count, 0);
 
@@ -82,34 +89,40 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
     return acc;
   }, {} as Record<string, RoomData[]>);
 
-  // Helper function to safely format date
+  // Helper function to safely format date and time
   const formatDateTime = (dateTime: any) => {
     if (!dateTime) return 'Not selected';
     
     try {
-      // Handle different date formats
-      let dateToFormat: Date;
+      let dateDisplay = '';
+      let timeDisplay = '';
       
-      if (dateTime.date && dateTime.time) {
-        // Handle {date: Date, time: string} format
-        const dateStr = `${format(new Date(dateTime.date), 'yyyy-MM-dd')} ${dateTime.time}`;
-        dateToFormat = new Date(dateStr);
-      } else if (typeof dateTime === 'string' || dateTime instanceof Date) {
-        // Handle direct date string or Date object
-        dateToFormat = new Date(dateTime);
-      } else {
-        return 'Invalid date format';
+      // Format date
+      if (dateTime.date) {
+        dateDisplay = format(new Date(dateTime.date), 'EEEE, MMMM d, yyyy');
       }
-
-      // Check if the date is valid
-      if (isNaN(dateToFormat.getTime())) {
-        return 'Invalid date';
+      
+      // Format time
+      if (dateTime.time) {
+        if (flexibleOptions[dateTime.time as keyof typeof flexibleOptions]) {
+          timeDisplay = flexibleOptions[dateTime.time as keyof typeof flexibleOptions];
+        } else {
+          timeDisplay = dateTime.time;
+        }
       }
-
-      return format(dateToFormat, 'PPP p');
+      
+      if (dateDisplay && timeDisplay) {
+        return `${dateDisplay} at ${timeDisplay}`;
+      } else if (dateDisplay) {
+        return dateDisplay;
+      } else if (timeDisplay) {
+        return timeDisplay;
+      }
+      
+      return 'Not fully selected';
     } catch (error) {
       console.error('Date formatting error:', error);
-      return 'Invalid date';
+      return 'Invalid date/time';
     }
   };
 
@@ -171,7 +184,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-medium mb-2">Selected Items:</h4>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(data.items).map(([itemId, quantity]) => (
+                {Object.entries(data.items).filter(([_, quantity]) => quantity > 0).map(([itemId, quantity]) => (
                   <div key={itemId} className="text-sm">
                     {itemNames[itemId as keyof typeof itemNames] || itemId} × {quantity}
                   </div>

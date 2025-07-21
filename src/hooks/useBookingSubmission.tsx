@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface RoomData {
   floor: string;
@@ -23,6 +24,27 @@ export const useBookingSubmission = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const formatDateTime = (dateTime: any) => {
+    if (!dateTime) return null;
+    
+    try {
+      if (dateTime.date && dateTime.time) {
+        // Combine date and time into a proper timestamp
+        const dateStr = format(new Date(dateTime.date), 'yyyy-MM-dd');
+        const timestamp = `${dateStr} ${dateTime.time}:00`;
+        return new Date(timestamp).toISOString();
+      } else if (dateTime instanceof Date) {
+        return dateTime.toISOString();
+      } else if (typeof dateTime === 'string') {
+        return new Date(dateTime).toISOString();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error formatting datetime:', error);
+      return null;
+    }
+  };
+
   const submitBooking = async (data: MovingData) => {
     if (!user) {
       toast({
@@ -36,13 +58,18 @@ export const useBookingSubmission = () => {
     setIsSubmitting(true);
 
     try {
+      // Format the datetime properly
+      const formattedDateTime = formatDateTime(data.dateTime);
+      
+      console.log('Submitting booking with datetime:', formattedDateTime);
+
       // Create the main booking
       const { data: booking, error: bookingError } = await supabase
         .from('moving_bookings')
         .insert({
           user_id: user.id,
           service_type: 'moving',
-          date_time: data.dateTime,
+          date_time: formattedDateTime,
           from_address: data.addresses.from,
           to_address: data.addresses.to,
           contact_name: data.contact.name,
