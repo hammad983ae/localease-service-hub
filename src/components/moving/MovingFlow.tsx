@@ -14,12 +14,26 @@ interface MovingFlowProps {
   onBack: () => void;
 }
 
+interface RoomData {
+  floor: string;
+  room: string;
+  count: number;
+}
+
+interface MovingData {
+  rooms: RoomData[];
+  items: Record<string, number>;
+  dateTime: any;
+  addresses: { from: string; to: string };
+  contact: { name: string; email: string; phone: string; notes: string };
+}
+
 type Step = 'rooms' | 'items' | 'datetime' | 'addresses' | 'contact';
 
 const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState<Step>('rooms');
-  const [movingData, setMovingData] = useState({
+  const [movingData, setMovingData] = useState<MovingData>({
     rooms: [],
     items: {},
     dateTime: null,
@@ -46,7 +60,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
     }
   };
 
-  const updateData = (stepData: any) => {
+  const updateData = (stepData: Partial<MovingData>) => {
     setMovingData(prev => ({ ...prev, ...stepData }));
   };
 

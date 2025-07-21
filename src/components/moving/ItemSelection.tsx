@@ -7,16 +7,35 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Minus, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface RoomData {
+  floor: string;
+  room: string;
+  count: number;
+}
+
 interface ItemSelectionProps {
-  data: any;
-  rooms: any[];
-  onUpdate: (items: any) => void;
+  data: Record<string, number>;
+  rooms: RoomData[];
+  onUpdate: (items: Record<string, number>) => void;
+}
+
+interface RoomItem {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+}
+
+interface FloorInfo {
+  id: string;
+  label: string;
+  icon: string;
 }
 
 const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) => {
   const { t } = useLanguage();
 
-  const roomItems = {
+  const roomItems: Record<string, RoomItem[]> = {
     livingRoom: [
       { id: 'sofa', label: t('item.sofa'), icon: '🛋️', color: 'from-blue-400 to-purple-500' },
       { id: 'coffeeTable', label: 'Coffee Table', icon: '🪑', color: 'from-brown-400 to-yellow-600' },
@@ -57,7 +76,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
     ],
   };
 
-  const floors = [
+  const floors: FloorInfo[] = [
     { id: 'basement', label: t('floor.basement'), icon: '🏠' },
     { id: 'ground', label: t('floor.ground'), icon: '🏡' },
     { id: 'first', label: t('floor.first'), icon: '🏢' },
@@ -75,10 +94,10 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
       };
     }
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, RoomData>);
 
-  const getItemCount = (itemId: string) => {
-    return (data[itemId] as number) || 0;
+  const getItemCount = (itemId: string): number => {
+    return data[itemId] || 0;
   };
 
   const updateItemCount = (itemId: string, count: number) => {
@@ -91,7 +110,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
     onUpdate(newData);
   };
 
-  const totalItems = Object.values(data).reduce((sum: number, count: any) => sum + (count as number), 0);
+  const totalItems = Object.values(data).reduce((sum: number, count: number) => sum + count, 0);
 
   // Group selected rooms by floor
   const roomsByFloor = Object.values(selectedRoomsData).reduce((acc, room) => {
@@ -100,7 +119,7 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
     }
     acc[room.floor].push(room);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, RoomData[]>);
 
   if (Object.keys(selectedRoomsData).length === 0) {
     return (
