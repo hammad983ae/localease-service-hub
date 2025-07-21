@@ -3,13 +3,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import LanguageToggle from '@/components/LanguageToggle';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { markOnboardingComplete } = useOnboardingStatus();
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
+    await markOnboardingComplete();
     navigate('/');
   };
 
