@@ -9,10 +9,11 @@ import { cn } from '@/lib/utils';
 
 interface ItemSelectionProps {
   data: any;
+  rooms: any[];
   onUpdate: (items: any) => void;
 }
 
-const ItemSelection: React.FC<ItemSelectionProps> = ({ data, onUpdate }) => {
+const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) => {
   const { t } = useLanguage();
 
   const roomItems = {
@@ -56,8 +57,28 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, onUpdate }) => {
     ],
   };
 
+  const floors = [
+    { id: 'basement', label: t('floor.basement'), icon: '🏠' },
+    { id: 'ground', label: t('floor.ground'), icon: '🏡' },
+    { id: 'first', label: t('floor.first'), icon: '🏢' },
+    { id: 'second', label: t('floor.second'), icon: '🏗️' },
+  ];
+
+  // Get unique room types and floors from the rooms array
+  const selectedRoomsData = rooms.reduce((acc, room) => {
+    const key = `${room.floor}-${room.room}`;
+    if (!acc[key]) {
+      acc[key] = {
+        floor: room.floor,
+        room: room.room,
+        count: room.count
+      };
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
   const getItemCount = (itemId: string) => {
-    return data[itemId] || 0;
+    return (data[itemId] as number) || 0;
   };
 
   const updateItemCount = (itemId: string, count: number) => {
@@ -70,7 +91,27 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, onUpdate }) => {
     onUpdate(newData);
   };
 
-  const totalItems = Object.values(data).reduce((sum: number, count: any) => sum + count, 0);
+  const totalItems = Object.values(data).reduce((sum: number, count: any) => sum + (count as number), 0);
+
+  // Group selected rooms by floor
+  const roomsByFloor = Object.values(selectedRoomsData).reduce((acc, room) => {
+    if (!acc[room.floor]) {
+      acc[room.floor] = [];
+    }
+    acc[room.floor].push(room);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  if (Object.keys(selectedRoomsData).length === 0) {
+    return (
+      <div className="text-center space-y-4">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+          Select Your Items
+        </h2>
+        <p className="text-muted-foreground">Please select rooms in the previous step to see available items</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -87,51 +128,68 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, onUpdate }) => {
         )}
       </div>
 
-      {Object.entries(roomItems).map(([roomType, items]) => (
-        <Card key={roomType} className="border-2 border-green-100 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
-            <CardTitle className="flex items-center space-x-2">
-              <span className="capitalize">{roomType.replace(/([A-Z])/g, ' $1').trim()}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {items.map((item) => {
-                const count = getItemCount(item.id);
+      {Object.entries(roomsByFloor).map(([floorId, floorRooms]) => {
+        const floor = floors.find(f => f.id === floorId);
+        if (!floor) return null;
+
+        return (
+          <Card key={floorId} className="border-2 border-green-100 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+              <CardTitle className="flex items-center space-x-2">
+                <span className="text-2xl">{floor.icon}</span>
+                <span>{floor.label}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {floorRooms.map((roomData) => {
+                const items = roomItems[roomData.room as keyof typeof roomItems] || [];
+                
                 return (
-                  <Card key={item.id} className="relative overflow-hidden hover:shadow-lg transition-all duration-300">
-                    <div className={cn("absolute inset-0 bg-gradient-to-br opacity-10", item.color)} />
-                    <CardContent className="p-4 text-center relative">
-                      <div className="text-3xl mb-2">{item.icon}</div>
-                      <div className="text-sm font-medium mb-3 min-h-[2.5rem] flex items-center justify-center">{item.label}</div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-red-50"
-                          onClick={() => updateItemCount(item.id, Math.max(0, count - 1))}
-                          disabled={count === 0}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center font-bold text-lg">{count}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-green-50"
-                          onClick={() => updateItemCount(item.id, count + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div key={`${roomData.floor}-${roomData.room}`}>
+                    <h3 className="text-lg font-semibold mb-4 capitalize">
+                      {roomData.room.replace(/([A-Z])/g, ' $1').trim()} ({roomData.count} room{roomData.count !== 1 ? 's' : ''})
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {items.map((item) => {
+                        const count = getItemCount(item.id);
+                        return (
+                          <Card key={item.id} className="relative overflow-hidden hover:shadow-lg transition-all duration-300">
+                            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-10", item.color)} />
+                            <CardContent className="p-4 text-center relative">
+                              <div className="text-3xl mb-2">{item.icon}</div>
+                              <div className="text-sm font-medium mb-3 min-h-[2.5rem] flex items-center justify-center">{item.label}</div>
+                              <div className="flex items-center justify-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-red-50"
+                                  onClick={() => updateItemCount(item.id, Math.max(0, count - 1))}
+                                  disabled={count === 0}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <span className="w-8 text-center font-bold text-lg">{count}</span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-green-50"
+                                  onClick={() => updateItemCount(item.id, count + 1)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

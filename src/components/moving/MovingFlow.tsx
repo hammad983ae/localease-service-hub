@@ -55,7 +55,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'rooms':
         return <RoomSelection data={movingData.rooms} onUpdate={(rooms) => updateData({ rooms })} />;
       case 'items':
-        return <ItemSelection data={movingData.items} onUpdate={(items) => updateData({ items })} />;
+        return <ItemSelection data={movingData.items} rooms={movingData.rooms} onUpdate={(items) => updateData({ items })} />;
       case 'datetime':
         return <DateTimeSelection data={movingData.dateTime} onUpdate={(dateTime) => updateData({ dateTime })} />;
       case 'addresses':
