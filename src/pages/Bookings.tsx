@@ -169,15 +169,15 @@ const Bookings: React.FC = () => {
                 
                 <CardContent className="space-y-3">
                   {/* Date and Time */}
-                  {booking.scheduled_date && (
+                  {booking.date_time && (
                     <div className="flex items-center space-x-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-foreground">
-                        {formatDate(booking.scheduled_date)}
+                        {formatDate(booking.date_time)}
                       </span>
                       <Clock className="h-4 w-4 text-muted-foreground ml-2" />
                       <span className="text-foreground">
-                        {formatTime(booking.scheduled_date)}
+                        {formatTime(booking.date_time)}
                       </span>
                     </div>
                   )}

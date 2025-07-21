@@ -131,27 +131,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
           onboarding_completed: boolean | null
+          phone: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id: string
           onboarding_completed?: boolean | null
+          phone?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           onboarding_completed?: boolean | null
+          phone?: string | null
           updated_at?: string | null
         }
         Relationships: []
