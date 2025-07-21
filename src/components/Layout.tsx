@@ -11,10 +11,8 @@ const Layout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {!hideNavigation && <Header />}
-      <main className="flex-1 pb-16 flex justify-center">
-        <div className="w-full max-w-lg mx-auto">
-          <Outlet />
-        </div>
+      <main className="flex-1 pb-16">
+        <Outlet />
       </main>
       {!hideNavigation && <BottomNavigation />}
     </div>
