@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Trash2, Car, Sparkles, TreePine } from 'lucide-react';
@@ -124,9 +125,9 @@ const Home: React.FC = () => {
   const firstName = userName.split(' ')[0];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-6 space-y-6">
       {/* Greeting Section */}
-      <div className="space-y-2 mb-6">
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">
           Hello, {firstName}!
         </h1>
@@ -135,81 +136,63 @@ const Home: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Services Grid */}
-        <div className="lg:col-span-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
-            {services.map((service) => (
-              <Card
-                key={service.id}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105",
-                  service.available ? "hover:bg-muted/30" : "opacity-60 cursor-not-allowed"
-                )}
-                onClick={() => handleServiceClick(service)}
-              >
-                <CardContent className="p-4 sm:p-6 flex flex-col items-start space-y-3">
-                  <div className={cn("p-3 rounded-full", service.color)}>
-                    <service.icon className="h-6 w-6" />
+      {/* Services Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {services.map((service) => (
+          <Card
+            key={service.id}
+            className={cn(
+              "cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105",
+              service.available ? "hover:bg-muted/30" : "opacity-60 cursor-not-allowed"
+            )}
+            onClick={() => handleServiceClick(service)}
+          >
+            <CardContent className="p-6 flex flex-col items-start space-y-3">
+              <div className={cn("p-3 rounded-full", service.color)}>
+                <service.icon className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-semibold text-sm">{service.label}</h3>
+                <p className="text-xs text-muted-foreground">{service.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent Bookings Section */}
+      {recentBookings.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Recent Bookings</h2>
+          <div className="space-y-3">
+            {recentBookings.map((booking) => (
+              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-full bg-green-50">
+                      <Sparkles className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm capitalize">
+                        {booking.service_type} Service
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(booking.created_at)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-sm">{service.label}</h3>
-                    <p className="text-xs text-muted-foreground">{service.description}</p>
-                  </div>
+                  <Badge 
+                    variant="secondary" 
+                    className={cn("text-xs", getStatusColor(booking.status))}
+                  >
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  </Badge>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
-
-        {/* Recent Bookings Section */}
-        <div className="lg:col-span-1">
-          {recentBookings.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Recent Bookings</h2>
-              <div className="space-y-3">
-                {recentBookings.map((booking) => (
-                  <Card key={booking.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="p-2 rounded-full bg-green-50">
-                          <Sparkles className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm capitalize">
-                            {booking.service_type} Service
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(booking.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge 
-                        variant="secondary" 
-                        className={cn("text-xs", getStatusColor(booking.status))}
-                      >
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {recentBookings.length === 0 && (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <h3 className="font-medium text-foreground mb-1">No bookings yet</h3>
-                <p className="text-sm text-muted-foreground">
-                  Start by selecting a service above
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
