@@ -82,6 +82,37 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
     return acc;
   }, {} as Record<string, RoomData[]>);
 
+  // Helper function to safely format date
+  const formatDateTime = (dateTime: any) => {
+    if (!dateTime) return 'Not selected';
+    
+    try {
+      // Handle different date formats
+      let dateToFormat: Date;
+      
+      if (dateTime.date && dateTime.time) {
+        // Handle {date: Date, time: string} format
+        const dateStr = `${format(new Date(dateTime.date), 'yyyy-MM-dd')} ${dateTime.time}`;
+        dateToFormat = new Date(dateStr);
+      } else if (typeof dateTime === 'string' || dateTime instanceof Date) {
+        // Handle direct date string or Date object
+        dateToFormat = new Date(dateTime);
+      } else {
+        return 'Invalid date format';
+      }
+
+      // Check if the date is valid
+      if (isNaN(dateToFormat.getTime())) {
+        return 'Invalid date';
+      }
+
+      return format(dateToFormat, 'PPP p');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-4">
@@ -152,19 +183,17 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
       </Card>
 
       {/* Date & Time */}
-      {data.dateTime && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
-              <span>Date & Time</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg">{format(new Date(data.dateTime), 'PPP p')}</p>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5" />
+            <span>Date & Time</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-lg">{formatDateTime(data.dateTime)}</p>
+        </CardContent>
+      </Card>
 
       {/* Addresses */}
       <Card>
