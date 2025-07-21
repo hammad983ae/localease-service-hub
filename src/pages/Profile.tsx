@@ -1,222 +1,286 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Phone, MapPin, Settings, Save, Edit, Check } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
-  const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
     phone: '',
     address: ''
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
+  // Fetch user profile
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const fetchProfile = async () => {
-    if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (data) {
-      setProfile({
-        full_name: data.full_name || '',
-        email: data.email || user.email || '',
-        phone: '',
-        address: ''
+  // Update profile mutation
+  const updateProfile = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (!user) throw new Error('No user');
+      
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          ...data,
+          updated_at: new Date().toISOString(),
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      setIsEditing(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
       });
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: profile.full_name,
-        email: profile.email,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
-
-    if (error) {
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive"
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Profile updated successfully"
+      console.error('Profile update error:', error);
+    },
+  });
+
+  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
+  const firstName = userName.split(' ')[0];
+
+  React.useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        address: profile.address || ''
       });
-      setIsEditing(false);
     }
-    setLoading(false);
+  }, [profile]);
+
+  const handleEdit = () => {
+    setIsEditing(true);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        address: profile.address || ''
+      });
+    }
   };
+
+  const handleSave = () => {
+    updateProfile.mutate(formData);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+          <div className="space-y-4">
+            <div className="h-48 bg-muted rounded"></div>
+            <div className="h-32 bg-muted rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {profile.full_name || 'User Profile'}
-          </h1>
-          <p className="text-muted-foreground">Manage your account information and preferences</p>
-        </div>
+    <div className="p-6 space-y-6">
+      {/* Header Section */}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-foreground">
+          Profile
+        </h1>
+        <p className="text-muted-foreground">
+          Hi {firstName}, manage your account information
+        </p>
+      </div>
 
-        {/* Profile Information Card */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <User className="h-6 w-6" />
-                <span>Personal Information</span>
+      {/* Profile Info Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 rounded-full bg-blue-50">
+                <User className="h-6 w-6 text-blue-600" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                disabled={loading}
-                className="text-white hover:bg-white/20"
-              >
-                {isEditing ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Save
-                  </>
-                ) : (
-                  <>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </>
-                )}
+              <div>
+                <CardTitle className="text-lg">Personal Information</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Update your personal details
+                </p>
+              </div>
+            </div>
+            {!isEditing ? (
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Edit
               </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  {t('common.name')}
-                </Label>
-                <Input
-                  id="name"
-                  value={profile.full_name}
-                  onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  disabled={!isEditing}
-                  className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                />
+            ) : (
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={handleSave}
+                  disabled={updateProfile.isPending}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateProfile.isPending ? 'Saving...' : 'Save'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  {t('common.email')}
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  disabled={!isEditing}
-                  className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                  {t('common.phone')}
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="+1 234 567 8900"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                  {t('common.address')}
-                </Label>
-                <Input
-                  id="address"
-                  value={profile.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="123 Main St, City, Country"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            )}
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="flex items-center space-x-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-muted"
+              />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Settings Card */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center space-x-3">
-              <Settings className="h-6 w-6" />
-              <span>Quick Actions</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 space-y-4">
-            <Button variant="outline" className="w-full justify-start h-14 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200">
-              <Mail className="h-5 w-5 mr-3 text-blue-500" />
-              <div>
-                <div className="font-medium">Notification Preferences</div>
-                <div className="text-sm text-muted-foreground">Manage how you receive updates</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="w-full justify-start h-14 text-left hover:bg-green-50 hover:border-green-300 transition-all duration-200">
-              <MapPin className="h-5 w-5 mr-3 text-green-500" />
-              <div>
-                <div className="font-medium">Saved Addresses</div>
-                <div className="text-sm text-muted-foreground">Manage your delivery locations</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="w-full justify-start h-14 text-left hover:bg-purple-50 hover:border-purple-300 transition-all duration-200">
-              <Phone className="h-5 w-5 mr-3 text-purple-500" />
-              <div>
-                <div className="font-medium">Emergency Contacts</div>
-                <div className="text-sm text-muted-foreground">Add trusted contacts for emergencies</div>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <div className="flex items-center space-x-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <Input
+                id="fullName"
+                value={formData.full_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                disabled={!isEditing}
+                placeholder="Enter your full name"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <div className="flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                disabled={!isEditing}
+                placeholder="Enter your phone number"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <div className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                disabled={!isEditing}
+                placeholder="Enter your address"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Account Actions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-full bg-gray-50">
+              <Settings className="h-6 w-6 text-gray-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Account Actions</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Manage your account settings
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <Button 
+            variant="outline" 
+            onClick={handleSignOut}
+            className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Account Info */}
+      <div className="p-4 bg-muted/50 rounded-lg">
+        <h3 className="font-medium text-foreground mb-2">Account Information</h3>
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p>• Your data is securely stored and encrypted</p>
+          <p>• You can update your information at any time</p>
+          <p>• Contact support if you need help with your account</p>
+        </div>
       </div>
     </div>
   );

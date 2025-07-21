@@ -1,210 +1,225 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Calendar, MapPin, Clock, Package, Truck, Trash2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, Home, Package, User } from 'lucide-react';
-import { format } from 'date-fns';
-
-interface Booking {
-  id: string;
-  service_type: string;
-  date_time: string;
-  from_address: string;
-  to_address: string;
-  contact_name: string;
-  contact_email: string;
-  contact_phone: string;
-  notes: string;
-  status: string;
-  created_at: string;
-  booking_rooms: Array<{
-    floor: string;
-    room: string;
-    count: number;
-  }>;
-  booking_items: Array<{
-    item_id: string;
-    quantity: number;
-  }>;
-}
+import { cn } from '@/lib/utils';
 
 const Bookings: React.FC = () => {
-  const { t } = useLanguage();
   const { user } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user) return;
+  // Fetch user profile to get the full name
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
-      try {
-        const { data, error } = await supabase
-          .from('moving_bookings')
-          .select(`
-            *,
-            booking_rooms (
-              floor,
-              room,
-              count
-            ),
-            booking_items (
-              item_id,
-              quantity
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+  // Fetch bookings
+  const { data: bookings = [], isLoading } = useQuery({
+    queryKey: ['bookings', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from('moving_bookings')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
-        if (error) {
-          console.error('Error fetching bookings:', error);
-        } else {
-          setBookings(data || []);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
+  const firstName = userName.split(' ')[0];
 
-    fetchBookings();
-  }, [user]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getServiceIcon = (serviceType: string) => {
+    switch (serviceType) {
+      case 'moving': return Truck;
+      case 'disposal': return Trash2;
+      case 'transport': return Package;
+      default: return Calendar;
     }
   };
 
-  const getTotalRooms = (booking: Booking) => {
-    return booking.booking_rooms?.reduce((sum, room) => sum + room.count, 0) || 0;
+  const getServiceColor = (serviceType: string) => {
+    switch (serviceType) {
+      case 'moving': return 'bg-blue-50 text-blue-600';
+      case 'disposal': return 'bg-green-50 text-green-600';
+      case 'transport': return 'bg-purple-50 text-purple-600';
+      default: return 'bg-gray-50 text-gray-600';
+    }
   };
 
-  const getTotalItems = (booking: Booking) => {
-    return booking.booking_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
   };
 
-  if (loading) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="text-center space-y-2">
+      {/* Header Section */}
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">
-          {t('nav.bookings')}
+          Your Bookings
         </h1>
         <p className="text-muted-foreground">
-          Manage your service bookings
+          Hi {firstName}, here are all your service bookings
         </p>
       </div>
 
+      {/* Bookings List */}
       {bookings.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">No bookings found. Create your first booking to get started!</p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Calendar className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground mb-2">No bookings yet</h3>
+          <p className="text-muted-foreground mb-6">
+            You haven't made any service bookings yet. Start by exploring our services.
+          </p>
+          <Button onClick={() => window.location.href = '/'}>
+            Browse Services
+          </Button>
+        </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => (
-            <Card key={booking.id} className="overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="capitalize">{booking.service_type} Service</span>
-                  <Badge className={getStatusColor(booking.status)}>
-                    {booking.status}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Date and Time */}
-                {booking.date_time && (
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {format(new Date(booking.date_time), 'PPP')}
-                    </span>
-                    <Clock className="h-4 w-4 text-muted-foreground ml-4" />
-                    <span className="text-sm">
-                      {format(new Date(booking.date_time), 'p')}
-                    </span>
+          {bookings.map((booking) => {
+            const ServiceIcon = getServiceIcon(booking.service_type);
+            const serviceColor = getServiceColor(booking.service_type);
+            
+            return (
+              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-3 rounded-full ${serviceColor}`}>
+                        <ServiceIcon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg capitalize">
+                          {booking.service_type} Service
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Booking #{booking.id.slice(0, 8)}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("text-xs border", getStatusColor(booking.status))}
+                    >
+                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    </Badge>
                   </div>
-                )}
-
-                {/* Addresses */}
-                <div className="space-y-2">
+                </CardHeader>
+                
+                <CardContent className="space-y-3">
+                  {/* Date and Time */}
+                  {booking.scheduled_date && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground">
+                        {formatDate(booking.scheduled_date)}
+                      </span>
+                      <Clock className="h-4 w-4 text-muted-foreground ml-2" />
+                      <span className="text-foreground">
+                        {formatTime(booking.scheduled_date)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Addresses */}
                   {booking.from_address && (
-                    <div className="flex items-start space-x-2">
-                      <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
-                      <div>
-                        <span className="text-sm font-medium text-green-600">From: </span>
-                        <span className="text-sm">{booking.from_address}</span>
+                    <div className="flex items-start space-x-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">From: </span>
+                          <span className="text-foreground">{booking.from_address}</span>
+                        </div>
+                        {booking.to_address && (
+                          <div>
+                            <span className="text-muted-foreground">To: </span>
+                            <span className="text-foreground">{booking.to_address}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
-                  {booking.to_address && (
-                    <div className="flex items-start space-x-2">
-                      <MapPin className="h-4 w-4 text-red-600 mt-0.5" />
-                      <div>
-                        <span className="text-sm font-medium text-red-600">To: </span>
-                        <span className="text-sm">{booking.to_address}</span>
-                      </div>
+                  
+                  {/* Contact Info */}
+                  {booking.contact_name && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Contact: </span>
+                      <span className="text-foreground">{booking.contact_name}</span>
+                      {booking.contact_phone && (
+                        <span className="text-muted-foreground"> • {booking.contact_phone}</span>
+                      )}
                     </div>
                   )}
-                </div>
-
-                {/* Contact Info */}
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{booking.contact_name}</span>
-                  <span className="text-sm text-muted-foreground">•</span>
-                  <span className="text-sm">{booking.contact_phone}</span>
-                </div>
-
-                {/* Rooms and Items Summary */}
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-1">
-                    <Home className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{getTotalRooms(booking)} rooms</span>
+                  
+                  {/* Created Date */}
+                  <div className="text-xs text-muted-foreground pt-2 border-t">
+                    Booked on {formatDate(booking.created_at)}
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{getTotalItems(booking)} items</span>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {booking.notes && (
-                  <div className="bg-muted rounded-lg p-3">
-                    <p className="text-sm">{booking.notes}</p>
-                  </div>
-                )}
-
-                {/* Booking Date */}
-                <div className="text-xs text-muted-foreground pt-2 border-t">
-                  Booked on {format(new Date(booking.created_at), 'PPP')}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

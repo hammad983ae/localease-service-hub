@@ -1,208 +1,155 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Upload, Calendar, Clock, MapPin } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { ArrowLeft, Trash2, Recycle, Home, Building } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Disposal: React.FC = () => {
-  const { t } = useLanguage();
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [formData, setFormData] = useState({
-    address: '',
-    date: '',
-    time: '',
-    notes: '',
-    contact: { name: '', email: '', phone: '' }
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+
+  // Fetch user profile to get the full name
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
   });
 
-  const disposalItems = [
-    { id: 'furniture', label: 'Furniture', icon: '🪑' },
-    { id: 'appliances', label: 'Appliances', icon: '🔌' },
-    { id: 'electronics', label: 'Electronics', icon: '📺' },
-    { id: 'mattress', label: 'Mattress', icon: '🛏️' },
-    { id: 'cardboard', label: 'Cardboard', icon: '📦' },
-    { id: 'metal', label: 'Metal', icon: '🔩' },
-    { id: 'wood', label: 'Wood', icon: '🪵' },
-    { id: 'other', label: 'Other', icon: '🗑️' },
+  const disposalServices = [
+    {
+      id: 'household',
+      icon: Home,
+      title: 'Household Junk',
+      description: 'Furniture, appliances, and general household items',
+      color: 'bg-blue-50 text-blue-600',
+      available: true
+    },
+    {
+      id: 'construction',
+      icon: Building,
+      title: 'Construction Debris',
+      description: 'Renovation waste, drywall, and building materials',
+      color: 'bg-orange-50 text-orange-600',
+      available: true
+    },
+    {
+      id: 'electronic',
+      icon: Recycle,
+      title: 'Electronic Waste',
+      description: 'Computers, TVs, phones, and electronic devices',
+      color: 'bg-green-50 text-green-600',
+      available: true
+    },
+    {
+      id: 'yard',
+      icon: Trash2,
+      title: 'Yard Waste',
+      description: 'Branches, leaves, grass clippings, and garden debris',
+      color: 'bg-emerald-50 text-emerald-600',
+      available: false
+    }
   ];
 
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00',
-    '13:00', '14:00', '15:00', '16:00', '17:00'
-  ];
-
-  const toggleItem = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
-
-  const handleSubmit = () => {
-    console.log('Disposal request:', { selectedItems, formData });
-  };
+  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
+  const firstName = userName.split(' ')[0];
 
   return (
     <div className="p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">
-          {t('disposal.title')}
-        </h1>
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/')}
+          className="hover:bg-muted/50"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-foreground">Disposal Services</h1>
+        </div>
+        <div className="w-10" />
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="font-medium mb-4">{t('disposal.selectItems')}</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {disposalItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => toggleItem(item.id)}
-                className={cn(
-                  "p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 text-center",
-                  selectedItems.includes(item.id)
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
+      {/* Greeting */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">
+          Hi {firstName}, what do you need to dispose of?
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          We handle all types of waste disposal responsibly
+        </p>
+      </div>
+
+      {/* Service Grid */}
+      <div className="grid grid-cols-1 gap-4">
+        {disposalServices.map((service) => (
+          <Card
+            key={service.id}
+            className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+              service.available ? "hover:bg-muted/30" : "opacity-60 cursor-not-allowed"
+            }`}
+            onClick={() => service.available && setSelectedService(service.id)}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-3 rounded-full ${service.color}`}>
+                    <service.icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{service.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {service.description}
+                    </p>
+                  </div>
+                </div>
+                {!service.available && (
+                  <Badge variant="secondary" className="text-xs">
+                    Coming Soon
+                  </Badge>
                 )}
-              >
-                <div className="text-2xl mb-2">{item.icon}</div>
-                <div className="text-sm font-medium">{item.label}</div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="font-medium mb-4">{t('disposal.uploadPhoto')}</h3>
-          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Tap to upload photos of items to dispose
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Pricing Info */}
+      <div className="mt-8 p-4 bg-muted/50 rounded-lg">
+        <h3 className="font-medium text-foreground mb-2">Disposal Process</h3>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p>• Schedule a pickup at your convenience</p>
+          <p>• Our team handles all the heavy lifting</p>
+          <p>• Environmentally responsible disposal and recycling</p>
+          <p>• Same-day and next-day service available</p>
+        </div>
+      </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <MapPin className="h-5 w-5 text-primary" />
-            <h3 className="font-medium">{t('disposal.address')}</h3>
-          </div>
-          <Input
-            placeholder="Enter pickup address"
-            value={formData.address}
-            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Calendar className="h-5 w-5 text-primary" />
-            <h3 className="font-medium">{t('common.date')}</h3>
-          </div>
-          <Input
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Clock className="h-5 w-5 text-primary" />
-            <h3 className="font-medium">{t('common.time')}</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {timeSlots.map((time) => (
-              <Button
-                key={time}
-                variant={formData.time === time ? "default" : "outline"}
-                onClick={() => setFormData(prev => ({ ...prev, time }))}
-                size="sm"
-              >
-                {time}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t('common.name')}</Label>
-            <Input
-              id="name"
-              placeholder="Enter your full name"
-              value={formData.contact.name}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                contact: { ...prev.contact, name: e.target.value }
-              }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">{t('common.email')}</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email address"
-              value={formData.contact.email}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                contact: { ...prev.contact, email: e.target.value }
-              }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">{t('common.phone')}</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="Enter your phone number"
-              value={formData.contact.phone}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                contact: { ...prev.contact, phone: e.target.value }
-              }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t('common.notes')}</Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional notes"
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button 
-        onClick={handleSubmit}
-        className="w-full h-12 text-lg font-medium"
-        size="lg"
-      >
-        {t('common.submit')}
-      </Button>
+      {/* Environmental Note */}
+      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+        <div className="flex items-center space-x-2 mb-2">
+          <Recycle className="h-5 w-5 text-green-600" />
+          <h3 className="font-medium text-green-800">Eco-Friendly Disposal</h3>
+        </div>
+        <p className="text-sm text-green-700">
+          We prioritize recycling and donation whenever possible to minimize environmental impact.
+        </p>
+      </div>
     </div>
   );
 };
