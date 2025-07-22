@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Plus, Minus, Home, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IsometricMap, Room } from './IsometricMap';
 
 interface RoomSelectionProps {
   data: any[];
@@ -15,6 +16,7 @@ interface RoomSelectionProps {
 const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
   const { t } = useLanguage();
   const [selectedFloors, setSelectedFloors] = useState<string[]>(['ground']);
+  const [selectedMapRooms, setSelectedMapRooms] = useState<Room[]>([]);
 
   const floors = [
     { id: 'basement', label: t('floor.basement'), icon: '🏠', color: 'bg-gray-100' },
@@ -57,14 +59,76 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
     return data.filter(r => r.floor === floor).reduce((sum, r) => sum + r.count, 0);
   };
 
+  const handleMapRoomSelect = (room: Room) => {
+    const floorMapping: { [key: number]: string } = {
+      0: 'ground',
+      1: 'first', 
+      2: 'second'
+    };
+    
+    const roomMapping: { [key: string]: string } = {
+      'Living Room': 'livingRoom',
+      'Bedroom': 'bedroom',
+      'Kitchen': 'kitchen',
+      'Bathroom': 'bathroom',
+      'Office': 'office',
+      'Storage': 'garage' // closest match for storage
+    };
+
+    const floorId = floorMapping[room.floor] || 'ground';
+    const roomId = Object.keys(roomMapping).find(key => room.name.includes(key)) || 'livingRoom';
+    const mappedRoomId = roomMapping[roomId] || roomId;
+    
+    setSelectedMapRooms(prev => {
+      const isSelected = prev.some(r => r.id === room.id);
+      if (isSelected) {
+        // Remove room - decrease count
+        const currentCount = getRoomCount(floorId, mappedRoomId);
+        updateRoomCount(floorId, mappedRoomId, Math.max(0, currentCount - 1));
+        return prev.filter(r => r.id !== room.id);
+      } else {
+        // Add room - increase count
+        const currentCount = getRoomCount(floorId, mappedRoomId);
+        updateRoomCount(floorId, mappedRoomId, currentCount + 1);
+        // Also make sure the floor is selected
+        if (!selectedFloors.includes(floorId)) {
+          setSelectedFloors(prev => [...prev, floorId]);
+        }
+        return [...prev, { ...room, selected: true }];
+      }
+    });
+  };
+
+  const handleMapRoomAdd = (room: Room) => {
+    // Don't automatically select newly added rooms, let user click to select
+  };
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Select Your Home Layout
         </h2>
         <p className="text-muted-foreground">Choose the floors and rooms you need to move</p>
       </div>
+
+      {/* Isometric Map */}
+      <Card className="border-2 border-emerald-100 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+          <CardTitle className="flex items-center space-x-2">
+            <Home className="h-5 w-5" />
+            <span>Interactive Floor Plan</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <IsometricMap 
+            mode="room-selection"
+            onRoomSelect={handleMapRoomSelect}
+            selectedRooms={selectedMapRooms}
+            onRoomAdd={handleMapRoomAdd}
+          />
+        </CardContent>
+      </Card>
 
       {/* Floor Selection */}
       <Card className="border-2 border-blue-100 shadow-lg">

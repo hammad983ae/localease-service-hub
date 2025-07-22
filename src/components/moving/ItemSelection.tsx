@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, Minus, Package } from 'lucide-react';
+import { Plus, Minus, Package, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IsometricMap, Room } from './IsometricMap';
 
 interface RoomData {
   floor: string;
@@ -34,6 +35,7 @@ interface FloorInfo {
 
 const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) => {
   const { t } = useLanguage();
+  const [selectedMapRooms, setSelectedMapRooms] = useState<Room[]>([]);
 
   const roomItems: Record<string, RoomItem[]> = {
     livingRoom: [
@@ -121,6 +123,22 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
     return acc;
   }, {} as Record<string, RoomData[]>);
 
+  const handleMapRoomSelect = (room: Room) => {
+    // For item placement mode, just update visual selection
+    setSelectedMapRooms(prev => {
+      const isSelected = prev.some(r => r.id === room.id);
+      if (isSelected) {
+        return prev.filter(r => r.id !== room.id);
+      } else {
+        return [...prev, { ...room, selected: true }];
+      }
+    });
+  };
+
+  const handleMapRoomAdd = (room: Room) => {
+    // Don't automatically select newly added rooms in item placement mode
+  };
+
   if (Object.keys(selectedRoomsData).length === 0) {
     return (
       <div className="max-w-5xl mx-auto text-center space-y-4">
@@ -146,6 +164,27 @@ const ItemSelection: React.FC<ItemSelectionProps> = ({ data, rooms, onUpdate }) 
           </Badge>
         )}
       </div>
+
+      {/* Isometric Map for Item Visualization */}
+      <Card className="border-2 border-indigo-100 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <CardTitle className="flex items-center space-x-2">
+            <Home className="h-5 w-5" />
+            <span>Visualize Your Items</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            View your selected rooms and visualize where your items will be placed
+          </p>
+          <IsometricMap 
+            mode="item-placement"
+            onRoomSelect={handleMapRoomSelect}
+            selectedRooms={selectedMapRooms}
+            onRoomAdd={handleMapRoomAdd}
+          />
+        </CardContent>
+      </Card>
 
       {Object.entries(roomsByFloor).map(([floorId, floorRooms]) => {
         const floor = floors.find(f => f.id === floorId);
