@@ -1,13 +1,15 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Trash2, Car, Sparkles, TreePine } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import ServiceCard from '@/components/ServiceCard';
+import RecentBookingCard from '@/components/RecentBookingCard';
+import HomeStats from '@/components/HomeStats';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const Home: React.FC = () => {
       id: 'moving',
       icon: Truck,
       label: t('service.moving'),
-      description: 'Professional moving services',
+      description: 'Professional moving services with expert teams',
       color: 'bg-blue-50 text-blue-600',
       route: '/moving',
       available: true
@@ -59,7 +61,7 @@ const Home: React.FC = () => {
       id: 'disposal',
       icon: Trash2,
       label: t('service.disposal'),
-      description: 'Junk removal & disposal',
+      description: 'Eco-friendly junk removal & disposal',
       color: 'bg-green-50 text-green-600',
       route: '/disposal',
       available: true
@@ -68,7 +70,7 @@ const Home: React.FC = () => {
       id: 'transport',
       icon: Car,
       label: t('service.transport'),
-      description: 'Quick delivery service',
+      description: 'Quick delivery & transportation service',
       color: 'bg-purple-50 text-purple-600',
       route: '/transport',
       available: true
@@ -77,7 +79,7 @@ const Home: React.FC = () => {
       id: 'cleaning',
       icon: Sparkles,
       label: t('service.cleaning'),
-      description: 'Professional cleaning',
+      description: 'Deep cleaning & maintenance services',
       color: 'bg-yellow-50 text-yellow-600',
       route: '/cleaning',
       available: false
@@ -99,115 +101,125 @@ const Home: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
   const firstName = userName.split(' ')[0];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Greeting Section */}
-      <div className="space-y-2 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          Hello, {firstName}!
-        </h1>
-        <p className="text-muted-foreground">
-          What service do you need today?
-        </p>
+      {/* Hero Section */}
+      <div className="mb-8 text-center space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Welcome back, {firstName}!
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Your one-stop solution for all home services
+          </p>
+        </div>
+        
+        {/* Stats Section */}
+        <HomeStats />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Services Grid */}
         <div className="lg:col-span-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
-            {services.map((service) => (
-              <Card
-                key={service.id}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105",
-                  service.available ? "hover:bg-muted/30" : "opacity-60 cursor-not-allowed"
-                )}
-                onClick={() => handleServiceClick(service)}
-              >
-                <CardContent className="p-4 sm:p-6 flex flex-col items-start space-y-3">
-                  <div className={cn("p-3 rounded-full", service.color)}>
-                    <service.icon className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-sm">{service.label}</h3>
-                    <p className="text-xs text-muted-foreground">{service.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Bookings Section */}
-        <div className="lg:col-span-1">
-          {recentBookings.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Recent Bookings</h2>
-              <div className="space-y-3">
-                {recentBookings.map((booking) => (
-                  <Card key={booking.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="p-2 rounded-full bg-green-50">
-                          <Sparkles className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm capitalize">
-                            {booking.service_type} Service
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(booking.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge 
-                        variant="secondary" 
-                        className={cn("text-xs", getStatusColor(booking.status))}
-                      >
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
-                    </CardContent>
-                  </Card>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground mb-4">
+                Our Services
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+                {services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    {...service}
+                    onClick={() => handleServiceClick(service)}
+                  />
                 ))}
               </div>
             </div>
-          )}
-          
-          {recentBookings.length === 0 && (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <h3 className="font-medium text-foreground mb-1">No bookings yet</h3>
-                <p className="text-sm text-muted-foreground">
-                  Start by selecting a service above
-                </p>
+
+            {/* Why Choose Us Section */}
+            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-100">
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-foreground mb-4 flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                  Why choose our services?
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                      Professional and experienced teams
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                      Transparent pricing with no hidden fees
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                      Fully insured and licensed
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                      24/7 customer support
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="space-y-6">
+            {/* Recent Bookings Section */}
+            {recentBookings.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Recent Bookings</h2>
+                <div className="space-y-3">
+                  {recentBookings.map((booking) => (
+                    <RecentBookingCard key={booking.id} booking={booking} />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Quick Tips Card */}
+            <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-green-100">
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-foreground mb-3 flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2 text-green-600" />
+                  Quick Tips
+                </h3>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>💡 Book services in advance for better scheduling</p>
+                  <p>📋 Prepare a detailed inventory for moving services</p>
+                  <p>🏠 Clear pathways for easier service delivery</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Get Started Card */}
+            {recentBookings.length === 0 && (
+              <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-100">
+                <CardContent className="p-6 text-center">
+                  <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                  <h3 className="font-medium text-foreground mb-2">Ready to get started?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Choose a service above and get your first quote in minutes!
+                  </p>
+                  <div className="text-xs text-muted-foreground">
+                    ⭐ Join thousands of satisfied customers
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>

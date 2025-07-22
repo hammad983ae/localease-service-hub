@@ -237,14 +237,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
   const handleSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!isAddingRoom || !svgRef.current) return;
 
-    const rect = svgRef.current.getBoundingClientRect();
-    const scaleX = 500 / rect.width;
-    const scaleY = 350 / rect.height;
-    
-    const x = (event.clientX - rect.left) * scaleX;
-    const y = (event.clientY - rect.top) * scaleY;
-
-    // Find the best available position near the click
+    // Find the best available position
     const position = findAvailablePosition(currentFloor);
     
     const newRoom: Room = {
@@ -507,7 +500,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
               {/* Walls */}
               {renderWalls(currentFloorPlan.walls)}
               
-              {/* Rooms */}
+              {/* Rooms - Show both original and newly added rooms */}
               {currentFloorRooms.map(room => renderRoom(room))}
               
               {/* Furniture */}
