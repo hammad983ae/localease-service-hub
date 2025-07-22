@@ -75,7 +75,13 @@ export const useServiceSelection = () => {
         throw error;
       }
 
-      return data;
+      if (!data) return null;
+
+      // Type assertion to ensure selection_type is properly typed
+      return {
+        ...data,
+        selection_type: data.selection_type as 'quote' | 'supplier'
+      } as ServiceSelection;
     } catch (error: any) {
       console.error('Error fetching service selection:', error);
       return null;
