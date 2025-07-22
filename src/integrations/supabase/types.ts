@@ -129,6 +129,54 @@ export type Database = {
         }
         Relationships: []
       }
+      moving_companies: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          location: string | null
+          name: string
+          price_range: string | null
+          rating: number | null
+          services: string[] | null
+          total_reviews: number | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          name: string
+          price_range?: string | null
+          rating?: number | null
+          services?: string[] | null
+          total_reviews?: number | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          name?: string
+          price_range?: string | null
+          rating?: number | null
+          services?: string[] | null
+          total_reviews?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -159,6 +207,33 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_service_selections: {
+        Row: {
+          created_at: string
+          id: string
+          selection_type: string
+          service_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          selection_type: string
+          service_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          selection_type?: string
+          service_type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

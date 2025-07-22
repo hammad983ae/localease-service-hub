@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { useBookingSubmission } from '@/hooks/useBookingSubmission';
+import { useServiceSelection } from '@/hooks/useServiceSelection';
 import RoomSelection from './RoomSelection';
 import ItemSelection from './ItemSelection';
 import DateTimeSelection from './DateTimeSelection';
 import AddressSelection from './AddressSelection';
 import ContactForm from './ContactForm';
 import BookingSummary from './BookingSummary';
+import CompanySelection from './CompanySelection';
 
 interface MovingFlowProps {
   type: 'quote' | 'supplier';
@@ -22,19 +24,34 @@ interface RoomData {
   count: number;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  description: string;
+  rating: number;
+  total_reviews: number;
+  location: string;
+  services: string[];
+  price_range: string;
+  image_url?: string;
+  contact_phone: string;
+  contact_email: string;
+}
+
 interface MovingData {
   rooms: RoomData[];
   items: Record<string, number>;
   dateTime: any;
   addresses: { from: string; to: string };
   contact: { name: string; email: string; phone: string; notes: string };
+  company?: Company;
 }
 
-type Step = 'rooms' | 'items' | 'datetime' | 'addresses' | 'contact' | 'summary';
+type Step = 'company' | 'rooms' | 'items' | 'datetime' | 'addresses' | 'contact' | 'summary';
 
 const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const { t } = useLanguage();
-  const [currentStep, setCurrentStep] = useState<Step>('rooms');
+  const [currentStep, setCurrentStep] = useState<Step>(type === 'supplier' ? 'company' : 'rooms');
   const [movingData, setMovingData] = useState<MovingData>({
     rooms: [],
     items: {},
@@ -45,8 +62,17 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { submitBooking, isSubmitting } = useBookingSubmission();
+  const { saveServiceSelection } = useServiceSelection();
 
-  const steps: Step[] = ['rooms', 'items', 'datetime', 'addresses', 'contact', 'summary'];
+  // Save service selection when flow starts
+  useEffect(() => {
+    saveServiceSelection('moving', type);
+  }, [type, saveServiceSelection]);
+
+  const steps: Step[] = type === 'supplier' 
+    ? ['company', 'rooms', 'items', 'datetime', 'addresses', 'contact', 'summary']
+    : ['rooms', 'items', 'datetime', 'addresses', 'contact', 'summary'];
+  
   const currentStepIndex = steps.indexOf(currentStep);
 
   const handleNext = () => {
@@ -76,8 +102,14 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
     }
   };
 
+  const handleCompanySelect = (company: Company) => {
+    updateData({ company });
+  };
+
   const renderStep = () => {
     switch (currentStep) {
+      case 'company':
+        return <CompanySelection selectedCompany={movingData.company || null} onCompanySelect={handleCompanySelect} />;
       case 'rooms':
         return <RoomSelection data={movingData.rooms} onUpdate={(rooms) => updateData({ rooms })} />;
       case 'items':
@@ -97,6 +129,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   const getStepTitle = () => {
     switch (currentStep) {
+      case 'company': return 'Choose Company';
       case 'rooms': return t('moving.selectRooms');
       case 'items': return t('moving.addItems');
       case 'datetime': return t('moving.dateTime');
@@ -104,6 +137,25 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'contact': return t('moving.contact');
       case 'summary': return 'Review Booking';
       default: return '';
+    }
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 'company':
+        return !!movingData.company;
+      case 'rooms':
+        return movingData.rooms.length > 0;
+      case 'items':
+        return Object.keys(movingData.items).length > 0;
+      case 'datetime':
+        return !!movingData.dateTime;
+      case 'addresses':
+        return movingData.addresses.from && movingData.addresses.to;
+      case 'contact':
+        return movingData.contact.name && movingData.contact.email && movingData.contact.phone;
+      default:
+        return true;
     }
   };
 
@@ -168,7 +220,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
           </Button>
           <Button
             onClick={currentStep === 'summary' ? handleSubmit : handleNext}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canProceed()}
           >
             {currentStep === 'summary' ? 
               (isSubmitting ? 'Submitting...' : 'Submit Booking') : 

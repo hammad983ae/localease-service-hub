@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -9,12 +9,14 @@ import { useNavigate } from 'react-router-dom';
 import MovingFlow from '@/components/moving/MovingFlow';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useServiceSelection } from '@/hooks/useServiceSelection';
 
 const Moving: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedType, setSelectedType] = useState<'quote' | 'supplier' | null>(null);
+  const { getServiceSelection } = useServiceSelection();
 
   // Fetch user profile to get the full name
   const { data: profile } = useQuery({
@@ -31,8 +33,26 @@ const Moving: React.FC = () => {
     enabled: !!user,
   });
 
+  // Check if user has a previous selection
+  useEffect(() => {
+    const checkPreviousSelection = async () => {
+      if (!user) return;
+      
+      const selection = await getServiceSelection('moving');
+      if (selection) {
+        setSelectedType(selection.selection_type as 'quote' | 'supplier');
+      }
+    };
+    
+    checkPreviousSelection();
+  }, [user, getServiceSelection]);
+
   const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
   const firstName = userName.split(' ')[0];
+
+  const handleTypeSelection = (type: 'quote' | 'supplier') => {
+    setSelectedType(type);
+  };
 
   if (selectedType) {
     return (
@@ -75,7 +95,7 @@ const Moving: React.FC = () => {
       <div className="space-y-4">
         <Card 
           className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
-          onClick={() => setSelectedType('quote')}
+          onClick={() => handleTypeSelection('quote')}
         >
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-3">
@@ -100,7 +120,7 @@ const Moving: React.FC = () => {
 
         <Card 
           className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
-          onClick={() => setSelectedType('supplier')}
+          onClick={() => handleTypeSelection('supplier')}
         >
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-3">
