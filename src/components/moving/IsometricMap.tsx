@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus, Home } from 'lucide-react';
@@ -24,46 +25,39 @@ interface IsometricMapProps {
 
 const ROOM_COLORS = {
   'living-room': {
-    base: '#8B7355',
-    top: '#A0845C',
-    side: '#6B5A45',
+    base: '#F5F1E8',
+    walls: '#E8E0D0',
     accent: '#D4C4A8'
   },
   'bedroom': {
-    base: '#6B73A1',
-    top: '#7B83B1',
-    side: '#5B6391',
-    accent: '#B8BDD4'
+    base: '#FFF8DC',
+    walls: '#F0E6D2',
+    accent: '#E6D7C3'
   },
   'kitchen': {
-    base: '#D97757',
-    top: '#E98767',
-    side: '#C96747',
-    accent: '#F4D1C4'
+    base: '#F8F8FF',
+    walls: '#E6E6FA',
+    accent: '#DDD8E8'
   },
   'bathroom': {
-    base: '#4A9B9B',
-    top: '#5AABAB',
-    side: '#3A8B8B',
-    accent: '#B8D4D4'
+    base: '#E0F6FF',
+    walls: '#CCE7FF',
+    accent: '#B8D4E8'
   },
   'dining-room': {
-    base: '#6B8B47',
-    top: '#7B9B57',
-    side: '#5B7B37',
-    accent: '#C4D4A8'
+    base: '#F0F8E8',
+    walls: '#E0F0D0',
+    accent: '#D4E8C4'
   },
   'office': {
-    base: '#8B6B47',
-    top: '#9B7B57',
-    side: '#7B5B37',
-    accent: '#D4C4A8'
+    base: '#FFF5EE',
+    walls: '#F5E6D3',
+    accent: '#E8D4C4'
   },
   'storage': {
-    base: '#7B7B7B',
-    top: '#8B8B8B',
-    side: '#6B6B6B',
-    accent: '#C4C4C4'
+    base: '#F5F5F5',
+    walls: '#E8E8E8',
+    accent: '#D8D8D8'
   }
 };
 
@@ -77,18 +71,114 @@ const ROOM_TYPES = [
   { type: 'storage', name: 'Storage', icon: '📦' }
 ] as const;
 
-const INITIAL_ROOMS: Room[] = [
-  // Ground Floor
-  { id: 'living-1', type: 'living-room', x: 60, y: 60, width: 140, height: 90, floor: 0, name: 'Living Room' },
-  { id: 'kitchen-1', type: 'kitchen', x: 220, y: 60, width: 110, height: 70, floor: 0, name: 'Kitchen' },
-  { id: 'dining-1', type: 'dining-room', x: 220, y: 150, width: 90, height: 70, floor: 0, name: 'Dining Room' },
-  { id: 'bathroom-1', type: 'bathroom', x: 60, y: 170, width: 50, height: 50, floor: 0, name: 'Guest Bathroom' },
-  
-  // First Floor
-  { id: 'bedroom-1', type: 'bedroom', x: 60, y: 60, width: 110, height: 90, floor: 1, name: 'Master Bedroom' },
-  { id: 'bedroom-2', type: 'bedroom', x: 190, y: 60, width: 90, height: 70, floor: 1, name: 'Bedroom 2' },
-  { id: 'bathroom-2', type: 'bathroom', x: 190, y: 150, width: 70, height: 70, floor: 1, name: 'Main Bathroom' },
-  { id: 'office-1', type: 'office', x: 300, y: 60, width: 70, height: 90, floor: 1, name: 'Office' },
+// Realistic floor plan layouts
+const FLOOR_PLANS = [
+  // Ground Floor - Open plan living
+  {
+    walls: [
+      // Outer walls
+      { x1: 50, y1: 50, x2: 450, y2: 50, thickness: 8 }, // Top
+      { x1: 450, y1: 50, x2: 450, y2: 300, thickness: 8 }, // Right
+      { x1: 450, y1: 300, x2: 50, y2: 300, thickness: 8 }, // Bottom
+      { x1: 50, y1: 300, x2: 50, y2: 50, thickness: 8 }, // Left
+      
+      // Interior walls
+      { x1: 320, y1: 50, x2: 320, y2: 180, thickness: 6 }, // Kitchen separator
+      { x1: 320, y1: 220, x2: 320, y2: 300, thickness: 6 }, // Bathroom wall
+      { x1: 320, y1: 180, x2: 380, y2: 180, thickness: 6 }, // Bathroom top
+      { x1: 380, y1: 180, x2: 380, y2: 220, thickness: 6 }, // Bathroom side
+      { x1: 320, y1: 220, x2: 380, y2: 220, thickness: 6 }, // Bathroom bottom
+    ],
+    rooms: [
+      { id: 'living-1', type: 'living-room', x: 60, y: 60, width: 250, height: 180, floor: 0, name: 'Living Room' },
+      { id: 'kitchen-1', type: 'kitchen', x: 330, y: 60, width: 110, height: 110, floor: 0, name: 'Kitchen' },
+      { id: 'bathroom-1', type: 'bathroom', x: 330, y: 190, width: 110, height: 100, floor: 0, name: 'Bathroom' },
+      { id: 'dining-1', type: 'dining-room', x: 60, y: 250, width: 250, height: 40, floor: 0, name: 'Dining Area' },
+    ],
+    furniture: [
+      // Living room furniture
+      { type: 'sofa', x: 80, y: 140, width: 80, height: 25, rotation: 0 },
+      { type: 'table', x: 90, y: 110, width: 40, height: 20, rotation: 0 },
+      { type: 'tv', x: 280, y: 80, width: 20, height: 8, rotation: 0 },
+      { type: 'chair', x: 180, y: 120, width: 20, height: 20, rotation: 45 },
+      
+      // Kitchen furniture
+      { type: 'counter', x: 340, y: 70, width: 90, height: 15, rotation: 0 },
+      { type: 'island', x: 350, y: 120, width: 40, height: 25, rotation: 0 },
+      { type: 'fridge', x: 420, y: 80, width: 15, height: 10, rotation: 0 },
+      
+      // Bathroom furniture
+      { type: 'toilet', x: 340, y: 200, width: 12, height: 15, rotation: 0 },
+      { type: 'sink', x: 360, y: 200, width: 20, height: 10, rotation: 0 },
+      { type: 'shower', x: 400, y: 200, width: 25, height: 25, rotation: 0 },
+      
+      // Dining furniture
+      { type: 'dining-table', x: 120, y: 260, width: 60, height: 20, rotation: 0 },
+      { type: 'chair', x: 100, y: 265, width: 12, height: 12, rotation: 0 },
+      { type: 'chair', x: 200, y: 265, width: 12, height: 12, rotation: 0 },
+    ]
+  },
+  // First Floor - Bedrooms
+  {
+    walls: [
+      // Outer walls
+      { x1: 50, y1: 50, x2: 450, y2: 50, thickness: 8 },
+      { x1: 450, y1: 50, x2: 450, y2: 300, thickness: 8 },
+      { x1: 450, y1: 300, x2: 50, y2: 300, thickness: 8 },
+      { x1: 50, y1: 300, x2: 50, y2: 50, thickness: 8 },
+      
+      // Interior walls
+      { x1: 250, y1: 50, x2: 250, y2: 300, thickness: 6 }, // Central corridor
+      { x1: 50, y1: 180, x2: 250, y2: 180, thickness: 6 }, // Master bedroom separator
+      { x1: 250, y1: 150, x2: 450, y2: 150, thickness: 6 }, // Second floor rooms
+    ],
+    rooms: [
+      { id: 'bedroom-1', type: 'bedroom', x: 60, y: 60, width: 180, height: 110, floor: 1, name: 'Master Bedroom' },
+      { id: 'bedroom-2', type: 'bedroom', x: 60, y: 190, width: 180, height: 100, floor: 1, name: 'Bedroom 2' },
+      { id: 'bathroom-2', type: 'bathroom', x: 260, y: 60, width: 80, height: 80, floor: 1, name: 'Master Bath' },
+      { id: 'office-1', type: 'office', x: 350, y: 60, width: 90, height: 80, floor: 1, name: 'Office' },
+      { id: 'bedroom-3', type: 'bedroom', x: 260, y: 160, width: 180, height: 130, floor: 1, name: 'Bedroom 3' },
+    ],
+    furniture: [
+      // Master bedroom
+      { type: 'bed', x: 100, y: 90, width: 60, height: 40, rotation: 0 },
+      { type: 'wardrobe', x: 190, y: 70, width: 40, height: 15, rotation: 90 },
+      { type: 'nightstand', x: 80, y: 90, width: 15, height: 15, rotation: 0 },
+      
+      // Bedroom 2
+      { type: 'bed', x: 90, y: 220, width: 50, height: 35, rotation: 0 },
+      { type: 'desk', x: 180, y: 200, width: 40, height: 20, rotation: 0 },
+      
+      // Office
+      { type: 'desk', x: 360, y: 80, width: 60, height: 25, rotation: 0 },
+      { type: 'chair', x: 375, y: 100, width: 15, height: 15, rotation: 0 },
+      { type: 'bookshelf', x: 420, y: 70, width: 15, height: 50, rotation: 0 },
+      
+      // Bedroom 3
+      { type: 'bed', x: 290, y: 200, width: 55, height: 40, rotation: 0 },
+      { type: 'wardrobe', x: 380, y: 170, width: 50, height: 15, rotation: 0 },
+    ]
+  },
+  // Second Floor - Attic/Storage
+  {
+    walls: [
+      { x1: 80, y1: 80, x2: 420, y2: 80, thickness: 8 },
+      { x1: 420, y1: 80, x2: 420, y2: 270, thickness: 8 },
+      { x1: 420, y1: 270, x2: 80, y2: 270, thickness: 8 },
+      { x1: 80, y1: 270, x2: 80, y2: 80, thickness: 8 },
+      
+      { x1: 250, y1: 80, x2: 250, y2: 270, thickness: 6 },
+    ],
+    rooms: [
+      { id: 'storage-1', type: 'storage', x: 90, y: 90, width: 150, height: 170, floor: 2, name: 'Storage Room' },
+      { id: 'office-2', type: 'office', x: 260, y: 90, width: 150, height: 170, floor: 2, name: 'Attic Office' },
+    ],
+    furniture: [
+      { type: 'shelf', x: 100, y: 100, width: 80, height: 15, rotation: 0 },
+      { type: 'boxes', x: 120, y: 180, width: 40, height: 40, rotation: 0 },
+      { type: 'desk', x: 280, y: 120, width: 70, height: 30, rotation: 0 },
+    ]
+  }
 ];
 
 export const IsometricMap: React.FC<IsometricMapProps> = ({ 
@@ -98,15 +188,15 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
   onRoomAdd 
 }) => {
   const [currentFloor, setCurrentFloor] = useState(0);
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>(
+    FLOOR_PLANS.flatMap(floor => floor.rooms as Room[])
+  );
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [selectedRoomType, setSelectedRoomType] = useState<Room['type']>('living-room');
   const svgRef = useRef<SVGSVGElement>(null);
   const { toast } = useToast();
 
   const maxFloors = 3;
-  const floorHeight = 300;
-  const floorOffset = 35;
 
   const handleRoomClick = (room: Room) => {
     if (mode === 'room-selection' && onRoomSelect) {
@@ -119,13 +209,13 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
 
     const rect = svgRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top - (currentFloor * floorOffset);
+    const y = event.clientY - rect.top;
 
     const newRoom: Room = {
       id: `${selectedRoomType}-${Date.now()}`,
       type: selectedRoomType,
-      x: Math.max(10, x - 50),
-      y: Math.max(10, y - 40),
+      x: Math.max(60, x - 50),
+      y: Math.max(60, y - 40),
       width: 100,
       height: 80,
       floor: currentFloor,
@@ -145,124 +235,148 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
     return selectedRooms.some(selected => selected.id === room.id);
   };
 
-  const renderRoom = (room: Room, floorIndex: number) => {
+  const renderWalls = (walls: any[]) => {
+    return walls.map((wall, index) => (
+      <line
+        key={`wall-${index}`}
+        x1={wall.x1}
+        y1={wall.y1}
+        x2={wall.x2}
+        y2={wall.y2}
+        stroke="#8B7355"
+        strokeWidth={wall.thickness}
+        strokeLinecap="round"
+      />
+    ));
+  };
+
+  const renderFurniture = (furniture: any[]) => {
+    return furniture.map((item, index) => {
+      const colors = {
+        sofa: '#8B4513',
+        table: '#D2691E',
+        tv: '#2F2F2F',
+        chair: '#CD853F',
+        counter: '#F5DEB3',
+        island: '#DEB887',
+        fridge: '#E6E6FA',
+        toilet: '#FFFFFF',
+        sink: '#F0F8FF',
+        shower: '#E0F6FF',
+        'dining-table': '#8B4513',
+        bed: '#4682B4',
+        wardrobe: '#8B7355',
+        nightstand: '#D2691E',
+        desk: '#CD853F',
+        bookshelf: '#8B4513',
+        shelf: '#D2691E',
+        boxes: '#DDD'
+      };
+
+      return (
+        <g key={`furniture-${index}`}>
+          <rect
+            x={item.x}
+            y={item.y}
+            width={item.width}
+            height={item.height}
+            fill={colors[item.type as keyof typeof colors] || '#CCC'}
+            stroke="#666"
+            strokeWidth="1"
+            rx="2"
+            transform={item.rotation ? `rotate(${item.rotation} ${item.x + item.width/2} ${item.y + item.height/2})` : ''}
+            className="opacity-70"
+          />
+          {item.type === 'bed' && (
+            <rect
+              x={item.x + 5}
+              y={item.y + 5}
+              width={item.width - 10}
+              height={item.height - 10}
+              fill="#FFF8DC"
+              rx="3"
+              className="opacity-80"
+            />
+          )}
+          {item.type === 'sofa' && (
+            <>
+              <rect x={item.x + 5} y={item.y + 2} width={item.width - 10} height={5} fill="#654321" rx="2" />
+              <rect x={item.x + 5} y={item.y + item.height - 7} width={item.width - 10} height={5} fill="#654321" rx="2" />
+            </>
+          )}
+        </g>
+      );
+    });
+  };
+
+  const renderRoom = (room: Room) => {
     const isSelected = isRoomSelected(room);
-    const yOffset = floorIndex * floorOffset;
     const colors = ROOM_COLORS[room.type];
     
     return (
       <g key={room.id}>
-        {/* Room shadow for depth */}
-        <rect
-          x={room.x + 3}
-          y={room.y + yOffset + 3}
-          width={room.width}
-          height={room.height}
-          fill="rgba(0,0,0,0.2)"
-          rx={6}
-          className="pointer-events-none"
-        />
-        
-        {/* Room base with texture */}
+        {/* Room floor */}
         <rect
           x={room.x}
-          y={room.y + yOffset}
+          y={room.y}
           width={room.width}
           height={room.height}
           fill={colors.base}
-          stroke={isSelected ? '#F59E0B' : '#444444'}
+          stroke={isSelected ? '#F59E0B' : colors.walls}
           strokeWidth={isSelected ? 3 : 1}
-          rx={6}
+          rx={2}
           className="cursor-pointer transition-all duration-300 hover:brightness-110"
           onClick={() => handleRoomClick(room)}
         />
         
-        {/* Room pattern/texture */}
-        <rect
-          x={room.x + 4}
-          y={room.y + yOffset + 4}
-          width={room.width - 8}
-          height={room.height - 8}
-          fill="none"
-          stroke={colors.accent}
-          strokeWidth={1}
-          strokeDasharray="2,2"
-          rx={4}
-          opacity={0.4}
-          className="pointer-events-none"
-        />
-        
-        {/* Room top (isometric effect) with gradient */}
+        {/* Room pattern */}
         <defs>
-          <linearGradient id={`topGradient-${room.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={colors.top} />
-            <stop offset="100%" stopColor={colors.base} />
-          </linearGradient>
+          <pattern id={`pattern-${room.id}`} patternUnits="userSpaceOnUse" width="10" height="10">
+            <rect width="10" height="10" fill={colors.base}/>
+            <circle cx="5" cy="5" r="0.5" fill={colors.accent} opacity="0.3"/>
+          </pattern>
         </defs>
-        <polygon
-          points={`${room.x},${room.y + yOffset} ${room.x + 18},${room.y - 12 + yOffset} ${room.x + room.width + 18},${room.y - 12 + yOffset} ${room.x + room.width},${room.y + yOffset}`}
-          fill={`url(#topGradient-${room.id})`}
-          stroke={isSelected ? '#F59E0B' : '#444444'}
-          strokeWidth={isSelected ? 2 : 1}
-          className="cursor-pointer transition-all duration-300"
-          onClick={() => handleRoomClick(room)}
-        />
-        
-        {/* Room side (isometric effect) with gradient */}
-        <defs>
-          <linearGradient id={`sideGradient-${room.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={colors.side} />
-            <stop offset="100%" stopColor={colors.base} />
-          </linearGradient>
-        </defs>
-        <polygon
-          points={`${room.x + room.width},${room.y + yOffset} ${room.x + room.width + 18},${room.y - 12 + yOffset} ${room.x + room.width + 18},${room.y + room.height - 12 + yOffset} ${room.x + room.width},${room.y + room.height + yOffset}`}
-          fill={`url(#sideGradient-${room.id})`}
-          stroke={isSelected ? '#F59E0B' : '#444444'}
-          strokeWidth={isSelected ? 2 : 1}
-          className="cursor-pointer transition-all duration-300"
-          onClick={() => handleRoomClick(room)}
-        />
-        
-        {/* Room icon with background circle */}
-        <circle
-          cx={room.x + room.width / 2}
-          cy={room.y + room.height / 2 - 8 + yOffset}
-          r={16}
-          fill="rgba(255,255,255,0.9)"
-          stroke={colors.base}
-          strokeWidth={2}
-          className="pointer-events-none"
-        />
-        <text
-          x={room.x + room.width / 2}
-          y={room.y + room.height / 2 - 8 + yOffset}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-lg pointer-events-none"
-          style={{ fontSize: '16px' }}
-        >
-          {ROOM_TYPES.find(t => t.type === room.type)?.icon}
-        </text>
-        
-        {/* Room name with background */}
         <rect
-          x={room.x + room.width / 2 - 35}
-          y={room.y + room.height / 2 + 8 + yOffset}
-          width={70}
+          x={room.x + 2}
+          y={room.y + 2}
+          width={room.width - 4}
+          height={room.height - 4}
+          fill={`url(#pattern-${room.id})`}
+          className="pointer-events-none opacity-60"
+        />
+        
+        {/* Room label background */}
+        <rect
+          x={room.x + room.width / 2 - 30}
+          y={room.y + room.height / 2 - 8}
+          width={60}
           height={16}
-          fill="rgba(255,255,255,0.9)"
+          fill="rgba(255,255,255,0.95)"
+          stroke={colors.walls}
+          strokeWidth={1}
           rx={8}
           className="pointer-events-none"
         />
+        
+        {/* Room icon and name */}
         <text
-          x={room.x + room.width / 2}
-          y={room.y + room.height / 2 + 16 + yOffset}
+          x={room.x + room.width / 2 - 20}
+          y={room.y + room.height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-xs pointer-events-none"
+          style={{ fontSize: '12px' }}
+        >
+          {ROOM_TYPES.find(t => t.type === room.type)?.icon}
+        </text>
+        <text
+          x={room.x + room.width / 2 + 8}
+          y={room.y + room.height / 2}
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-xs font-medium pointer-events-none"
           fill="#444444"
-          style={{ fontSize: '9px' }}
+          style={{ fontSize: '8px' }}
         >
           {room.name}
         </text>
@@ -270,9 +384,9 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
         {/* Selection indicator */}
         {isSelected && (
           <circle
-            cx={room.x + room.width - 8}
-            cy={room.y + 8 + yOffset}
-            r={6}
+            cx={room.x + room.width - 10}
+            cy={room.y + 10}
+            r={8}
             fill="#F59E0B"
             stroke="#FFFFFF"
             strokeWidth={2}
@@ -283,6 +397,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
     );
   };
 
+  const currentFloorPlan = FLOOR_PLANS[currentFloor];
   const currentFloorRooms = rooms.filter(room => room.floor === currentFloor);
 
   return (
@@ -319,7 +434,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
         </div>
       </div>
 
-      {/* Room Type Selector (when adding rooms) */}
+      {/* Room Type Selector */}
       {isAddingRoom && (
         <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
           {ROOM_TYPES.map((roomType) => (
@@ -336,8 +451,8 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
         </div>
       )}
 
-      {/* Map SVG */}
-      <div className="relative bg-gradient-to-br from-green-50 to-blue-50 rounded-lg overflow-hidden border-2 border-muted">
+      {/* Architectural Floor Plan */}
+      <div className="relative bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg overflow-hidden border-2 border-muted">
         <svg
           ref={svgRef}
           width="100%"
@@ -346,54 +461,31 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
           className={isAddingRoom ? "cursor-crosshair" : "cursor-default"}
           onClick={handleSvgClick}
         >
-          {/* Background pattern */}
-          <defs>
-            <pattern id="floorPattern" patternUnits="userSpaceOnUse" width="20" height="20">
-              <rect width="20" height="20" fill="#F8F9FA"/>
-              <rect width="1" height="20" fill="#E5E7EB"/>
-              <rect width="20" height="1" fill="#E5E7EB"/>
-            </pattern>
-          </defs>
+          {/* Background */}
+          <rect width="500" height="380" fill="#FAFAF9" />
           
-          {/* Floor base with wood texture */}
-          <rect
-            x="40"
-            y={40 + (currentFloor * floorOffset)}
-            width="380"
-            height="230"
-            fill="url(#floorPattern)"
-            stroke="#D1D5DB"
-            strokeWidth="3"
-            rx="12"
-          />
-          
-          {/* Floor top (isometric) */}
-          <polygon
-            points={`40,${40 + (currentFloor * floorOffset)} 55,${25 + (currentFloor * floorOffset)} 435,${25 + (currentFloor * floorOffset)} 420,${40 + (currentFloor * floorOffset)}`}
-            fill="#F3F4F6"
-            stroke="#D1D5DB"
-            strokeWidth="3"
-          />
-          
-          {/* Floor side (isometric) */}
-          <polygon
-            points={`420,${40 + (currentFloor * floorOffset)} 435,${25 + (currentFloor * floorOffset)} 435,${255 + (currentFloor * floorOffset)} 420,${270 + (currentFloor * floorOffset)}`}
-            fill="#E5E7EB"
-            stroke="#D1D5DB"
-            strokeWidth="3"
-          />
-
-          {/* Rooms */}
-          {currentFloorRooms.map(room => renderRoom(room, currentFloor))}
+          {/* Floor plan elements */}
+          {currentFloorPlan && (
+            <>
+              {/* Walls */}
+              {renderWalls(currentFloorPlan.walls)}
+              
+              {/* Rooms */}
+              {currentFloorRooms.map(room => renderRoom(room))}
+              
+              {/* Furniture */}
+              {renderFurniture(currentFloorPlan.furniture)}
+            </>
+          )}
           
           {/* Add room instruction */}
           {isAddingRoom && (
             <g>
               <rect
                 x="175"
-                y="180"
+                y="320"
                 width="150"
-                height="30"
+                height="25"
                 fill="rgba(255,255,255,0.95)"
                 stroke="#D1D5DB"
                 strokeWidth="1"
@@ -401,24 +493,24 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
               />
               <text
                 x="250"
-                y="200"
+                y="335"
                 textAnchor="middle"
                 className="text-sm fill-muted-foreground"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '10px' }}
               >
                 Click to add {ROOM_TYPES.find(t => t.type === selectedRoomType)?.name}
               </text>
             </g>
           )}
           
-          {/* Floor number indicator */}
+          {/* Floor indicator */}
           <g>
             <circle
               cx="460"
               cy="350"
               r="20"
               fill="rgba(255,255,255,0.9)"
-              stroke="#D1D5DB"
+              stroke="#8B7355"
               strokeWidth="2"
             />
             <text
@@ -426,7 +518,8 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
               y="355"
               textAnchor="middle"
               dominantBaseline="middle"
-              className="text-sm font-bold fill-muted-foreground"
+              className="text-sm font-bold"
+              fill="#8B7355"
             >
               {currentFloor + 1}
             </text>
@@ -437,7 +530,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
       {/* Action Buttons */}
       <div className="flex justify-between items-center">
         <div className="text-xs text-muted-foreground">
-          {mode === 'room-selection' ? 'Click rooms to select them' : 'View selected rooms and items'}
+          {mode === 'room-selection' ? 'Click rooms to select them' : 'View your selected room layout'}
         </div>
         
         <Button
