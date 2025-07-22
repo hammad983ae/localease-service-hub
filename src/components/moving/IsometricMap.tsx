@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus, Home } from 'lucide-react';
@@ -70,6 +69,13 @@ const ROOM_TYPES = [
   { type: 'office', name: 'Office', icon: '💼' },
   { type: 'storage', name: 'Storage', icon: '📦' }
 ] as const;
+
+// Map boundaries for each floor
+const MAP_BOUNDS = {
+  x: { min: 60, max: 420 },
+  y: { min: 60, max: 250 },
+  roomSize: { width: 80, height: 60 }
+};
 
 // Realistic floor plan layouts
 const FLOOR_PLANS = [
@@ -204,22 +210,52 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
     }
   };
 
+  const findAvailablePosition = (floor: number) => {
+    const existingRooms = rooms.filter(r => r.floor === floor);
+    const { x: xBounds, y: yBounds, roomSize } = MAP_BOUNDS;
+    
+    // Try to find a position that doesn't overlap with existing rooms
+    for (let y = yBounds.min; y <= yBounds.max - roomSize.height; y += 20) {
+      for (let x = xBounds.min; x <= xBounds.max - roomSize.width; x += 20) {
+        const wouldOverlap = existingRooms.some(room => 
+          x < room.x + room.width &&
+          x + roomSize.width > room.x &&
+          y < room.y + room.height &&
+          y + roomSize.height > room.y
+        );
+        
+        if (!wouldOverlap) {
+          return { x, y };
+        }
+      }
+    }
+    
+    // If no non-overlapping position found, return a default position
+    return { x: xBounds.min + 20, y: yBounds.min + 20 };
+  };
+
   const handleSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!isAddingRoom || !svgRef.current) return;
 
     const rect = svgRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const scaleX = 500 / rect.width;
+    const scaleY = 350 / rect.height;
+    
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
 
+    // Find the best available position near the click
+    const position = findAvailablePosition(currentFloor);
+    
     const newRoom: Room = {
       id: `${selectedRoomType}-${Date.now()}`,
       type: selectedRoomType,
-      x: Math.max(60, x - 50),
-      y: Math.max(60, y - 40),
-      width: 100,
-      height: 80,
+      x: position.x,
+      y: position.y,
+      width: MAP_BOUNDS.roomSize.width,
+      height: MAP_BOUNDS.roomSize.height,
       floor: currentFloor,
-      name: `${ROOM_TYPES.find(t => t.type === selectedRoomType)?.name} ${rooms.filter(r => r.type === selectedRoomType).length + 1}`
+      name: `${ROOM_TYPES.find(t => t.type === selectedRoomType)?.name} ${rooms.filter(r => r.type === selectedRoomType && r.floor === currentFloor).length + 1}`
     };
 
     setRooms(prev => [...prev, newRoom]);
@@ -434,16 +470,17 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
         </div>
       </div>
 
-      {/* Room Type Selector */}
+      {/* Room Type Selector - Only show when adding */}
       {isAddingRoom && (
-        <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border">
+          <div className="w-full text-xs text-muted-foreground mb-2">Select room type, then click on the map:</div>
           {ROOM_TYPES.map((roomType) => (
             <Button
               key={roomType.type}
               variant={selectedRoomType === roomType.type ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedRoomType(roomType.type)}
-              className="text-xs"
+              className="text-xs h-8"
             >
               {roomType.icon} {roomType.name}
             </Button>
@@ -452,17 +489,17 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
       )}
 
       {/* Architectural Floor Plan */}
-      <div className="relative bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg overflow-hidden border-2 border-muted">
+      <div className="relative bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg overflow-hidden border">
         <svg
           ref={svgRef}
           width="100%"
-          height="380"
-          viewBox="0 0 500 380"
+          height="350"
+          viewBox="0 0 500 350"
           className={isAddingRoom ? "cursor-crosshair" : "cursor-default"}
           onClick={handleSvgClick}
         >
           {/* Background */}
-          <rect width="500" height="380" fill="#FAFAF9" />
+          <rect width="500" height="350" fill="#FAFAF9" />
           
           {/* Floor plan elements */}
           {currentFloorPlan && (
@@ -478,44 +515,19 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
             </>
           )}
           
-          {/* Add room instruction */}
-          {isAddingRoom && (
-            <g>
-              <rect
-                x="175"
-                y="320"
-                width="150"
-                height="25"
-                fill="rgba(255,255,255,0.95)"
-                stroke="#D1D5DB"
-                strokeWidth="1"
-                rx="6"
-              />
-              <text
-                x="250"
-                y="335"
-                textAnchor="middle"
-                className="text-sm fill-muted-foreground"
-                style={{ fontSize: '10px' }}
-              >
-                Click to add {ROOM_TYPES.find(t => t.type === selectedRoomType)?.name}
-              </text>
-            </g>
-          )}
-          
           {/* Floor indicator */}
           <g>
             <circle
               cx="460"
-              cy="350"
-              r="20"
+              cy="320"
+              r="18"
               fill="rgba(255,255,255,0.9)"
               stroke="#8B7355"
               strokeWidth="2"
             />
             <text
               x="460"
-              y="355"
+              y="325"
               textAnchor="middle"
               dominantBaseline="middle"
               className="text-sm font-bold"
@@ -534,18 +546,18 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
         </div>
         
         <Button
-          variant="outline"
+          variant={isAddingRoom ? "default" : "outline"}
           size="sm"
           onClick={() => setIsAddingRoom(!isAddingRoom)}
         >
           <Plus className="h-3 w-3 mr-1" />
-          Add Room
+          {isAddingRoom ? 'Cancel' : 'Add Room'}
         </Button>
       </div>
 
       {/* Selected rooms indicator */}
       {selectedRooms.length > 0 && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground border-t pt-2">
           Selected: {selectedRooms.length} room{selectedRooms.length !== 1 ? 's' : ''}
         </div>
       )}

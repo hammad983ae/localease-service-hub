@@ -104,117 +104,51 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="text-center space-y-4">
+    <div className="max-w-7xl mx-auto">
+      <div className="text-center space-y-4 mb-8">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Select Your Home Layout
         </h2>
         <p className="text-muted-foreground">Choose the floors and rooms you need to move</p>
       </div>
 
-      {/* Isometric Map */}
-      <Card className="border-2 border-emerald-100 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
-          <CardTitle className="flex items-center space-x-2">
-            <Home className="h-5 w-5" />
-            <span>Interactive Floor Plan</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <IsometricMap 
-            mode="room-selection"
-            onRoomSelect={handleMapRoomSelect}
-            selectedRooms={selectedMapRooms}
-            onRoomAdd={handleMapRoomAdd}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Floor Selection */}
-      <Card className="border-2 border-blue-100 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <CardTitle className="flex items-center space-x-2">
-            <Home className="h-5 w-5" />
-            <span>Select Floors</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {floors.map((floor) => {
-              const isSelected = selectedFloors.includes(floor.id);
-              const totalRooms = getTotalRoomsForFloor(floor.id);
-              
-              return (
-                <Card
-                  key={floor.id}
-                  className={cn(
-                    "cursor-pointer transition-all duration-300 hover:scale-105",
-                    isSelected ? "ring-2 ring-blue-500 shadow-lg" : "hover:shadow-md"
-                  )}
-                  onClick={() => toggleFloor(floor.id)}
-                >
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-2xl">{floor.icon}</div>
-                      {isSelected && <Check className="h-5 w-5 text-green-500" />}
-                    </div>
-                    <div className="font-medium text-sm mb-1">{floor.label}</div>
-                    {totalRooms > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {totalRooms} room{totalRooms !== 1 ? 's' : ''}
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Room Selection for Selected Floors */}
-      {selectedFloors.map((floorId) => {
-        const floor = floors.find(f => f.id === floorId);
-        if (!floor) return null;
-
-        return (
-          <Card key={floorId} className="border-2 border-purple-100 shadow-lg">
-            <CardHeader className={cn("text-white", floor.color === 'bg-gray-100' ? 'bg-gray-500' : 'bg-gradient-to-r from-purple-500 to-pink-600')}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Left Column - Controls */}
+        <div className="space-y-6">
+          {/* Floor Selection */}
+          <Card className="border-2 border-blue-100 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
               <CardTitle className="flex items-center space-x-2">
-                <span className="text-2xl">{floor.icon}</span>
-                <span>Rooms on {floor.label}</span>
+                <Home className="h-5 w-5" />
+                <span>Select Floors</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {Object.entries(roomTypes).map(([roomId, room]) => {
-                  const count = getRoomCount(floorId, roomId);
+              <div className="grid grid-cols-2 gap-4">
+                {floors.map((floor) => {
+                  const isSelected = selectedFloors.includes(floor.id);
+                  const totalRooms = getTotalRoomsForFloor(floor.id);
+                  
                   return (
-                    <Card key={roomId} className="relative overflow-hidden">
-                      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-10", room.color)} />
-                      <CardContent className="p-4 text-center relative">
-                        <div className="text-3xl mb-2">{room.icon}</div>
-                        <div className="text-sm font-medium mb-3">{room.label}</div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-red-50"
-                            onClick={() => updateRoomCount(floorId, roomId, Math.max(0, count - 1))}
-                            disabled={count === 0}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center font-bold text-lg">{count}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-green-50"
-                            onClick={() => updateRoomCount(floorId, roomId, count + 1)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                    <Card
+                      key={floor.id}
+                      className={cn(
+                        "cursor-pointer transition-all duration-300 hover:scale-105",
+                        isSelected ? "ring-2 ring-blue-500 shadow-lg" : "hover:shadow-md"
+                      )}
+                      onClick={() => toggleFloor(floor.id)}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-2xl">{floor.icon}</div>
+                          {isSelected && <Check className="h-5 w-5 text-green-500" />}
                         </div>
+                        <div className="font-medium text-sm mb-1">{floor.label}</div>
+                        {totalRooms > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {totalRooms} room{totalRooms !== 1 ? 's' : ''}
+                          </Badge>
+                        )}
                       </CardContent>
                     </Card>
                   );
@@ -222,8 +156,81 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
               </div>
             </CardContent>
           </Card>
-        );
-      })}
+
+          {/* Room Selection for Selected Floors */}
+          {selectedFloors.map((floorId) => {
+            const floor = floors.find(f => f.id === floorId);
+            if (!floor) return null;
+
+            return (
+              <Card key={floorId} className="border-2 border-purple-100 shadow-lg">
+                <CardHeader className={cn("text-white", floor.color === 'bg-gray-100' ? 'bg-gray-500' : 'bg-gradient-to-r from-purple-500 to-pink-600')}>
+                  <CardTitle className="flex items-center space-x-2">
+                    <span className="text-2xl">{floor.icon}</span>
+                    <span>Rooms on {floor.label}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {Object.entries(roomTypes).map(([roomId, room]) => {
+                      const count = getRoomCount(floorId, roomId);
+                      return (
+                        <Card key={roomId} className="relative overflow-hidden">
+                          <div className={cn("absolute inset-0 bg-gradient-to-br opacity-10", room.color)} />
+                          <CardContent className="p-4 text-center relative">
+                            <div className="text-3xl mb-2">{room.icon}</div>
+                            <div className="text-sm font-medium mb-3">{room.label}</div>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-red-50"
+                                onClick={() => updateRoomCount(floorId, roomId, Math.max(0, count - 1))}
+                                disabled={count === 0}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="w-8 text-center font-bold text-lg">{count}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-green-50"
+                                onClick={() => updateRoomCount(floorId, roomId, count + 1)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Right Column - Interactive Floor Plan */}
+        <div className="sticky top-4">
+          <Card className="border-2 border-emerald-100 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+              <CardTitle className="flex items-center space-x-2">
+                <Home className="h-5 w-5" />
+                <span>Interactive Floor Plan</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <IsometricMap 
+                mode="room-selection"
+                onRoomSelect={handleMapRoomSelect}
+                selectedRooms={selectedMapRooms}
+                onRoomAdd={handleMapRoomAdd}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
