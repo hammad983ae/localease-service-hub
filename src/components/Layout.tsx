@@ -6,7 +6,7 @@ import Header from './Header';
 
 const Layout: React.FC = () => {
   const location = useLocation();
-  const hideNavigation = location.pathname === '/onboarding';
+  const hideNavigation = location.pathname === '/' || location.pathname === '/auth';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

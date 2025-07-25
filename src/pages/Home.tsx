@@ -3,55 +3,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Trash2, Car, Sparkles, TreePine } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import ServiceCard from '@/components/ServiceCard';
-import RecentBookingCard from '@/components/RecentBookingCard';
-import HomeStats from '@/components/HomeStats';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
-  const { user } = useAuth();
-
-  // Fetch user profile to get the full name
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch recent bookings
-  const { data: recentBookings = [] } = useQuery({
-    queryKey: ['recent-bookings', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data } = await supabase
-        .from('moving_bookings')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-      return data || [];
-    },
-    enabled: !!user,
-  });
 
   const services = [
     {
       id: 'moving',
       icon: Truck,
-      label: t('service.moving'),
+      label: 'Moving',
       description: 'Professional moving services with expert teams',
       color: 'bg-blue-50 text-blue-600',
       route: '/moving',
@@ -60,7 +21,7 @@ const Home: React.FC = () => {
     {
       id: 'disposal',
       icon: Trash2,
-      label: t('service.disposal'),
+      label: 'Disposal',
       description: 'Eco-friendly junk removal & disposal',
       color: 'bg-green-50 text-green-600',
       route: '/disposal',
@@ -69,7 +30,7 @@ const Home: React.FC = () => {
     {
       id: 'transport',
       icon: Car,
-      label: t('service.transport'),
+      label: 'Transport',
       description: 'Quick delivery & transportation service',
       color: 'bg-purple-50 text-purple-600',
       route: '/transport',
@@ -78,7 +39,7 @@ const Home: React.FC = () => {
     {
       id: 'cleaning',
       icon: Sparkles,
-      label: t('service.cleaning'),
+      label: 'Cleaning',
       description: 'Deep cleaning & maintenance services',
       color: 'bg-yellow-50 text-yellow-600',
       route: '/cleaning',
@@ -87,7 +48,7 @@ const Home: React.FC = () => {
     {
       id: 'gardening',
       icon: TreePine,
-      label: t('service.gardening'),
+      label: 'Gardening',
       description: 'Garden maintenance & landscaping',
       color: 'bg-emerald-50 text-emerald-600',
       route: '/gardening',
@@ -101,24 +62,18 @@ const Home: React.FC = () => {
     }
   };
 
-  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
-  const firstName = userName.split(' ')[0];
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Hero Section */}
       <div className="mb-8 text-center space-y-4">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome back, {firstName}!
+            Welcome to LocalEase!
           </h1>
           <p className="text-muted-foreground text-lg">
             Your one-stop solution for all home services
           </p>
         </div>
-        
-        {/* Stats Section */}
-        <HomeStats />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -177,18 +132,20 @@ const Home: React.FC = () => {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="space-y-6">
-            {/* Recent Bookings Section */}
-            {recentBookings.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Recent Bookings</h2>
-                <div className="space-y-3">
-                  {recentBookings.map((booking) => (
-                    <RecentBookingCard key={booking.id} booking={booking} />
-                  ))}
+            {/* Get Started Card */}
+            <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-100">
+              <CardContent className="p-6 text-center">
+                <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <h3 className="font-medium text-foreground mb-2">Ready to get started?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose a service above and get your first quote in minutes!
+                </p>
+                <div className="text-xs text-muted-foreground">
+                  ⭐ Join thousands of satisfied customers
                 </div>
-              </div>
-            )}
-            
+              </CardContent>
+            </Card>
+
             {/* Quick Tips Card */}
             <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-green-100">
               <CardContent className="p-6">
@@ -203,22 +160,6 @@ const Home: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Get Started Card */}
-            {recentBookings.length === 0 && (
-              <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-100">
-                <CardContent className="p-6 text-center">
-                  <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                  <h3 className="font-medium text-foreground mb-2">Ready to get started?</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Choose a service above and get your first quote in minutes!
-                  </p>
-                  <div className="text-xs text-muted-foreground">
-                    ⭐ Join thousands of satisfied customers
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
