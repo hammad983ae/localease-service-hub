@@ -33,9 +33,15 @@ const Auth: React.FC = () => {
     if (!result?.error) {
       toast({
         title: 'Success',
-        description: isLogin ? 'Logged in successfully!' : 'Account created successfully!',
+        description: isLogin ? 'Logged in successfully!' : 'Account created successfully! Please sign in.',
       });
-      navigate('/home');
+      if (isLogin) {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (user?.role === 'admin') navigate('/admin');
+        else navigate('/home');
+      } else {
+        setIsLogin(true); // Switch to login form after registration
+      }
     } else {
       toast({
         title: 'Error',

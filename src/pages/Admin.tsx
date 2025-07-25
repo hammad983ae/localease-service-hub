@@ -19,61 +19,60 @@ import {
   XCircle,
   Search
 } from 'lucide-react';
+import { gql, useQuery, useMutation } from '@apollo/client';
 
-interface ServiceRequest {
-  id: string;
-  type: 'quote' | 'supplier';
-  service: string;
-  user: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  addresses: {
-    from: string;
-    to: string;
-  };
-  dateTime: string;
-  status: 'pending' | 'approved' | 'rejected';
-  rooms: Array<{ room: string; floor: string; count: number }>;
-  items: Record<string, number>;
-  notes: string;
-  createdAt: string;
-}
+const ALL_BOOKINGS_QUERY = gql`
+  query AllBookings {
+    allBookings {
+      id
+      status
+      createdAt
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      contact { name email phone notes }
+      rooms { room floor count }
+      items
+      company { name contact_email contact_phone }
+    }
+  }
+`;
+
+const APPROVE_BOOKING_MUTATION = gql`
+  mutation ApproveBooking($id: ID!) {
+    approveBooking(id: $id) { id status }
+  }
+`;
+const REJECT_BOOKING_MUTATION = gql`
+  mutation RejectBooking($id: ID!) {
+    rejectBooking(id: $id) { id status }
+  }
+`;
+const APPROVED_BOOKINGS_QUERY = gql`
+  query ApprovedBookings { approvedBookings { id status createdAt dateTime dateTimeFlexible addresses { from to } contact { name email phone notes } rooms { room floor count } items company { name contact_email contact_phone } } }
+`;
+const REJECTED_BOOKINGS_QUERY = gql`
+  query RejectedBookings { rejectedBookings { id status createdAt dateTime dateTimeFlexible addresses { from to } contact { name email phone notes } rooms { room floor count } items company { name contact_email contact_phone } } }
+`;
 
 const Admin: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
-  // Mock data for service requests
-  const serviceRequests: ServiceRequest[] = [
-    {
-      id: '1',
-      type: 'quote',
-      service: 'moving',
-      user: { name: 'John Doe', email: 'john@example.com', phone: '+1234567890' },
-      addresses: { from: '123 Main St, City A', to: '456 Oak Ave, City B' },
-      dateTime: '2024-01-15T10:00:00Z',
-      status: 'pending',
-      rooms: [{ room: 'Living Room', floor: 'Ground Floor', count: 1 }],
-      items: { 'Sofa': 1, 'TV': 1, 'Coffee Table': 1 },
-      notes: 'Need help with heavy furniture',
-      createdAt: '2024-01-10T09:00:00Z'
-    },
-    {
-      id: '2',
-      type: 'supplier',
-      service: 'moving',
-      user: { name: 'Jane Smith', email: 'jane@example.com', phone: '+1234567891' },
-      addresses: { from: '789 Pine St, City C', to: '321 Elm St, City D' },
-      dateTime: '2024-01-20T14:00:00Z',
-      status: 'approved',
-      rooms: [{ room: 'Bedroom', floor: 'First Floor', count: 2 }],
-      items: { 'Bed': 2, 'Wardrobe': 1, 'Desk': 1 },
-      notes: 'Fragile items need special care',
-      createdAt: '2024-01-08T11:00:00Z'
-    }
-  ];
+  const { data, loading, error, refetch } = useQuery(ALL_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
+  const { data: approvedData, refetch: refetchApproved } = useQuery(APPROVED_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
+  const { data: rejectedData, refetch: refetchRejected } = useQuery(REJECTED_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
+  const [approveBooking] = useMutation(APPROVE_BOOKING_MUTATION);
+  const [rejectBooking] = useMutation(REJECT_BOOKING_MUTATION);
+
+  const serviceRequests = data?.allBookings || [];
+  const approvedRequests = approvedData?.approvedBookings || [];
+  const rejectedRequests = rejectedData?.rejectedBookings || [];
+
+  // Debug: Show raw data and errors
+  if (loading) return <div>Loading...</div>;
+  if (error) return <pre style={{color: 'red'}}>GraphQL Error: {error.message}</pre>;
+  if (!serviceRequests.length && !approvedRequests.length && !rejectedRequests.length) return <div>No bookings found.</div>;
 
   const stats = {
     totalRequests: 156,
@@ -85,8 +84,8 @@ const Admin: React.FC = () => {
   };
 
   const filteredRequests = serviceRequests.filter(request => {
-    const matchesSearch = request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = request.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         request.contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.addresses.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.addresses.to.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -95,9 +94,18 @@ const Admin: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (requestId: string, newStatus: 'approved' | 'rejected') => {
-    // In a real app, this would update the backend
-    console.log(`Updating request ${requestId} to status: ${newStatus}`);
+  const handleStatusChange = async (requestId: string, newStatus: 'approved' | 'rejected') => {
+    if (newStatus === 'approved') {
+      await approveBooking({ variables: { id: requestId } });
+      await refetch();
+      await refetchApproved();
+      await refetchRejected();
+    } else if (newStatus === 'rejected') {
+      await rejectBooking({ variables: { id: requestId } });
+      await refetch();
+      await refetchApproved();
+      await refetchRejected();
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -174,7 +182,9 @@ const Admin: React.FC = () => {
         {/* Main Content */}
         <Tabs defaultValue="requests" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="requests">Service Requests</TabsTrigger>
+            <TabsTrigger value="requests">All Requests</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
@@ -233,9 +243,9 @@ const Admin: React.FC = () => {
                           <Package className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{request.service} - {request.type}</CardTitle>
+                          <CardTitle className="text-lg">Request ID: {request.id}</CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Request ID: {request.id}
+                            Status: {request.status}
                           </p>
                         </div>
                       </div>
@@ -275,14 +285,14 @@ const Admin: React.FC = () => {
                           Customer Details
                         </h4>
                         <div className="space-y-1 text-sm">
-                          <p><strong>Name:</strong> {request.user.name}</p>
+                          <p><strong>Name:</strong> {request.contact?.name || 'N/A'}</p>
                           <p className="flex items-center">
                             <Mail className="h-3 w-3 mr-1" />
-                            {request.user.email}
+                            {request.contact?.email || 'N/A'}
                           </p>
                           <p className="flex items-center">
                             <Phone className="h-3 w-3 mr-1" />
-                            {request.user.phone}
+                            {request.contact?.phone || 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -293,8 +303,8 @@ const Admin: React.FC = () => {
                           Addresses
                         </h4>
                         <div className="space-y-1 text-sm">
-                          <p><strong>From:</strong> {request.addresses.from}</p>
-                          <p><strong>To:</strong> {request.addresses.to}</p>
+                          <p><strong>From:</strong> {request.addresses?.from || 'N/A'}</p>
+                          <p><strong>To:</strong> {request.addresses?.to || 'N/A'}</p>
                         </div>
                       </div>
 
@@ -318,9 +328,185 @@ const Admin: React.FC = () => {
                       </div>
                     </div>
                     
-                    {request.notes && (
+                    {request.contact?.notes && (
                       <div className="mt-4 p-3 bg-muted rounded-lg">
-                        <p className="text-sm"><strong>Notes:</strong> {request.notes}</p>
+                        <p className="text-sm"><strong>Notes:</strong> {request.contact.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="approved" className="space-y-4">
+            {/* Approved bookings table, use approvedData?.approvedBookings */}
+            <div className="space-y-4">
+              {approvedRequests.map((request) => (
+                <Card key={request.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-green-50">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Request ID: {request.id}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Status: {request.status}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getStatusColor(request.status)}>
+                          {request.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <Users className="h-4 w-4 mr-2" />
+                          Customer Details
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Name:</strong> {request.contact?.name || 'N/A'}</p>
+                          <p className="flex items-center">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {request.contact?.email || 'N/A'}
+                          </p>
+                          <p className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {request.contact?.phone || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Addresses
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>From:</strong> {request.addresses?.from || 'N/A'}</p>
+                          <p><strong>To:</strong> {request.addresses?.to || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {new Date(request.dateTime).toLocaleDateString()}</p>
+                          <p><strong>Time:</strong> {new Date(request.dateTime).toLocaleTimeString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Items & Rooms</h4>
+                        <div className="text-sm">
+                          <p><strong>Rooms:</strong> {request.rooms.map(r => `${r.room} (${r.floor})`).join(', ')}</p>
+                          <p><strong>Items:</strong> {Object.entries(request.items).map(([item, count]) => `${item} (${count})`).join(', ')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {request.contact?.notes && (
+                      <div className="mt-4 p-3 bg-muted rounded-lg">
+                        <p className="text-sm"><strong>Notes:</strong> {request.contact.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="rejected" className="space-y-4">
+            {/* Rejected bookings table, use rejectedData?.rejectedBookings */}
+            <div className="space-y-4">
+              {rejectedRequests.map((request) => (
+                <Card key={request.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-red-50">
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Request ID: {request.id}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Status: {request.status}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getStatusColor(request.status)}>
+                          {request.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <Users className="h-4 w-4 mr-2" />
+                          Customer Details
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Name:</strong> {request.contact?.name || 'N/A'}</p>
+                          <p className="flex items-center">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {request.contact?.email || 'N/A'}
+                          </p>
+                          <p className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {request.contact?.phone || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Addresses
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>From:</strong> {request.addresses?.from || 'N/A'}</p>
+                          <p><strong>To:</strong> {request.addresses?.to || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {new Date(request.dateTime).toLocaleDateString()}</p>
+                          <p><strong>Time:</strong> {new Date(request.dateTime).toLocaleTimeString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Items & Rooms</h4>
+                        <div className="text-sm">
+                          <p><strong>Rooms:</strong> {request.rooms.map(r => `${r.room} (${r.floor})`).join(', ')}</p>
+                          <p><strong>Items:</strong> {Object.entries(request.items).map(([item, count]) => `${item} (${count})`).join(', ')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {request.contact?.notes && (
+                      <div className="mt-4 p-3 bg-muted rounded-lg">
+                        <p className="text-sm"><strong>Notes:</strong> {request.contact.notes}</p>
                       </div>
                     )}
                   </CardContent>

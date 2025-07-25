@@ -8,6 +8,7 @@ interface User {
   full_name?: string;
   phone?: string;
   address?: string;
+  role?: string;
   [key: string]: any;
 }
 
@@ -40,6 +41,7 @@ const ME_QUERY = gql`
       full_name
       phone
       address
+      role
     }
   }
 `;
@@ -54,6 +56,7 @@ const LOGIN_MUTATION = gql`
         full_name
         phone
         address
+        role
       }
     }
   }
@@ -69,6 +72,7 @@ const REGISTER_MUTATION = gql`
         full_name
         phone
         address
+        role
       }
     }
   }
@@ -129,11 +133,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { token, user } = res.data.login;
       setToken(token);
       setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
       setLoading(false);
       return { error: null };
     } catch (error: any) {
       setUser(null);
       setToken(null);
+      localStorage.removeItem('user');
       setLoading(false);
       return { error: error.message };
     }
@@ -150,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { token, user } = res.data.register;
       setToken(token);
       setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
       setLoading(false);
       return { error: null };
     } catch (error: any) {
@@ -162,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = () => {
     setUser(null);
     setToken(null);
+    localStorage.removeItem('user');
   };
 
   // Update profile
