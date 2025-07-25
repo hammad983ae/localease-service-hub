@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,7 +7,7 @@ import { useServiceSelection } from '@/hooks/useServiceSelection';
 import RoomSelection from './RoomSelection';
 import ItemSelection from './ItemSelection';
 import DateTimeSelection from './DateTimeSelection';
-import AddressSelection from './AddressSelection';
+import EnhancedAddressSelection from './EnhancedAddressSelection';
 import ContactForm from './ContactForm';
 import BookingSummary from './BookingSummary';
 import CompanySelection from './CompanySelection';
@@ -117,7 +116,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'datetime':
         return <DateTimeSelection data={movingData.dateTime} onUpdate={(dateTime) => updateData({ dateTime })} />;
       case 'addresses':
-        return <AddressSelection data={movingData.addresses} onUpdate={(addresses) => updateData({ addresses })} />;
+        return <EnhancedAddressSelection data={movingData.addresses} onUpdate={(addresses) => updateData({ addresses })} />;
       case 'contact':
         return <ContactForm data={movingData.contact} onUpdate={(contact) => updateData({ contact })} />;
       case 'summary':

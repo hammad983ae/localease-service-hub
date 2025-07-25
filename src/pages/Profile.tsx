@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import AddressManager from '@/components/profile/AddressManager';
 
 const Profile: React.FC = () => {
   const { user, signOut, updateProfile, loading } = useAuth();
@@ -16,6 +17,20 @@ const Profile: React.FC = () => {
     phone: '',
     address: ''
   });
+  const [addresses, setAddresses] = useState([
+    {
+      id: '1',
+      label: 'Home',
+      address: '123 Main Street, City, State 12345',
+      isDefault: true
+    },
+    {
+      id: '2',
+      label: 'Work',
+      address: '456 Business Ave, Downtown, State 67890',
+      isDefault: false
+    }
+  ]);
 
   useEffect(() => {
     if (user) {
@@ -96,7 +111,7 @@ const Profile: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Profile Info Card */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
@@ -196,6 +211,9 @@ const Profile: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Address Management */}
+        <AddressManager addresses={addresses} onAddressesChange={setAddresses} />
 
         {/* Account Actions */}
         <Card>
