@@ -17,6 +17,7 @@ import Bookings from "./pages/Bookings";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -27,22 +28,24 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<Layout />}>
-                <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
-                <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
-                <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
-                <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-                <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={<Layout />}>
+                  <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
+                  <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
+                  <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
+                  <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+                  <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
         </TooltipProvider>
       </LanguageProvider>
     </QueryClientProvider>

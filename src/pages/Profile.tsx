@@ -1,18 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile, loading } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -20,70 +17,15 @@ const Profile: React.FC = () => {
     address: ''
   });
 
-  // Fetch user profile
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Update profile mutation
-  const updateProfile = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      if (!user) throw new Error('No user');
-      
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          ...data,
-          updated_at: new Date().toISOString(),
-        });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      setIsEditing(false);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Profile update error:', error);
-    },
-  });
-
-  const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
-  const firstName = userName.split(' ')[0];
-
-  React.useEffect(() => {
-    if (profile) {
+  useEffect(() => {
+    if (user) {
       setFormData({
-        full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        address: profile.address || ''
+        full_name: user.full_name || '',
+        phone: user.phone || '',
+        address: user.address || ''
       });
     }
-  }, [profile]);
+  }, [user]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -91,36 +33,41 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    if (profile) {
+    if (user) {
       setFormData({
-        full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        address: profile.address || ''
+        full_name: user.full_name || '',
+        phone: user.phone || '',
+        address: user.address || ''
       });
     }
   };
 
-  const handleSave = () => {
-    updateProfile.mutate(formData);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
+  const handleSave = async () => {
+    const result = await updateProfile(formData);
+    if (!result?.error) {
+      setIsEditing(false);
       toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
+        title: 'Profile updated',
+        description: 'Your profile has been successfully updated.',
       });
-    } catch (error) {
+    } else {
       toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
-  if (isLoading) {
+  const handleSignOut = () => {
+    signOut();
+    toast({
+      title: 'Signed out',
+      description: 'You have been successfully signed out.',
+    });
+  };
+
+  if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="animate-pulse">
@@ -133,6 +80,9 @@ const Profile: React.FC = () => {
       </div>
     );
   }
+
+  const userName = user?.full_name || user?.email || 'User';
+  const firstName = userName.split(' ')[0];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -176,10 +126,10 @@ const Profile: React.FC = () => {
                   <Button 
                     size="sm" 
                     onClick={handleSave}
-                    disabled={updateProfile.isPending}
+                    disabled={loading}
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {updateProfile.isPending ? 'Saving...' : 'Save'}
+                    {loading ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
               )}

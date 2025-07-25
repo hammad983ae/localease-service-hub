@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Star, MapPin, Phone, Mail, CheckCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Integrate with Node.js/MongoDB backend for company selection data
 import { cn } from '@/lib/utils';
 
 interface Company {
@@ -34,17 +34,8 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
   const { data: companies, isLoading } = useQuery({
     queryKey: ['moving_companies'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('moving_companies')
-        .select('*')
-        .eq('is_active', true)
-        .order('rating', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return data as Company[];
+      // TODO: Fetch company data from backend
+      return [];
     },
   });
 

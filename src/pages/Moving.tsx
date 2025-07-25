@@ -8,7 +8,7 @@ import { ArrowLeft, Calculator, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MovingFlow from '@/components/moving/MovingFlow';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 
 const Moving: React.FC = () => {
@@ -23,12 +23,8 @@ const Moving: React.FC = () => {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      return data;
+      // TODO: Fetch user profile from Node.js/MongoDB backend
+      return null;
     },
     enabled: !!user,
   });

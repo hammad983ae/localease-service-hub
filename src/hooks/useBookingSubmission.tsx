@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { gql, useApolloClient } from '@apollo/client';
 
 interface RoomData {
   floor: string;
@@ -17,26 +17,60 @@ interface MovingData {
   dateTime: any;
   addresses: { from: string; to: string };
   contact: { name: string; email: string; phone: string; notes: string };
+  company?: any;
 }
+
+const CREATE_BOOKING_MUTATION = gql`
+  mutation CreateMovingBooking(
+    $rooms: [RoomInput],
+    $items: JSON,
+    $dateTime: Date,
+    $dateTimeFlexible: String,
+    $addresses: AddressInput,
+    $contact: ContactInput,
+    $company: CompanyInput
+  ) {
+    createMovingBooking(
+      rooms: $rooms,
+      items: $items,
+      dateTime: $dateTime,
+      dateTimeFlexible: $dateTimeFlexible,
+      addresses: $addresses,
+      contact: $contact,
+      company: $company
+    ) {
+      id
+      status
+      createdAt
+    }
+  }
+`;
 
 export const useBookingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const client = useApolloClient();
 
   const formatDateTime = (dateTime: any) => {
     if (!dateTime) return null;
-    
     try {
       if (dateTime.date && dateTime.time) {
-        // Combine date and time into a proper timestamp
+        const flexibleOptions = ['flexible', 'morning', 'afternoon', 'weekend'];
+        if (flexibleOptions.includes(dateTime.time)) {
+          return JSON.stringify({ date: dateTime.date, time: dateTime.time });
+        }
         const dateStr = format(new Date(dateTime.date), 'yyyy-MM-dd');
         const timestamp = `${dateStr} ${dateTime.time}:00`;
-        return new Date(timestamp).toISOString();
+        const d = new Date(timestamp);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString();
       } else if (dateTime instanceof Date) {
         return dateTime.toISOString();
       } else if (typeof dateTime === 'string') {
-        return new Date(dateTime).toISOString();
+        const d = new Date(dateTime);
+        if (!isNaN(d.getTime())) return d.toISOString();
+        return dateTime;
       }
       return null;
     } catch (error) {
@@ -54,80 +88,33 @@ export const useBookingSubmission = () => {
       });
       return false;
     }
-
     setIsSubmitting(true);
-
     try {
-      // Format the datetime properly
       const formattedDateTime = formatDateTime(data.dateTime);
-      
-      console.log('Submitting booking with datetime:', formattedDateTime);
-
-      // Create the main booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('moving_bookings')
-        .insert({
-          user_id: user.id,
-          service_type: 'moving',
-          date_time: formattedDateTime,
-          from_address: data.addresses.from,
-          to_address: data.addresses.to,
-          contact_name: data.contact.name,
-          contact_email: data.contact.email,
-          contact_phone: data.contact.phone,
-          notes: data.contact.notes,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (bookingError) {
-        throw bookingError;
+      let dateTime = null;
+      let dateTimeFlexible = null;
+      // Determine if flexible or specific
+      if (formattedDateTime && formattedDateTime.startsWith('{')) {
+        dateTimeFlexible = formattedDateTime;
+      } else {
+        dateTime = formattedDateTime;
       }
-
-      const bookingId = booking.id;
-
-      // Insert room data
-      if (data.rooms.length > 0) {
-        const roomInserts = data.rooms.map(room => ({
-          booking_id: bookingId,
-          floor: room.floor,
-          room: room.room,
-          count: room.count
-        }));
-
-        const { error: roomsError } = await supabase
-          .from('booking_rooms')
-          .insert(roomInserts);
-
-        if (roomsError) {
-          throw roomsError;
+      await client.mutate({
+        mutation: CREATE_BOOKING_MUTATION,
+        variables: {
+          rooms: data.rooms,
+          items: data.items,
+          dateTime,
+          dateTimeFlexible,
+          addresses: data.addresses,
+          contact: data.contact,
+          company: data.company || null
         }
-      }
-
-      // Insert item data
-      const itemEntries = Object.entries(data.items).filter(([_, quantity]) => quantity > 0);
-      if (itemEntries.length > 0) {
-        const itemInserts = itemEntries.map(([itemId, quantity]) => ({
-          booking_id: bookingId,
-          item_id: itemId,
-          quantity: quantity
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('booking_items')
-          .insert(itemInserts);
-
-        if (itemsError) {
-          throw itemsError;
-        }
-      }
-
+      });
       toast({
         title: "Booking submitted successfully!",
         description: "Your moving request has been received. We'll contact you soon.",
       });
-
       return true;
     } catch (error: any) {
       console.error('Booking submission error:', error);

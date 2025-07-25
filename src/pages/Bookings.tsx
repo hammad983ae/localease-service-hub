@@ -5,37 +5,41 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, gql } from '@apollo/client';
 import { cn } from '@/lib/utils';
+
+const MY_BOOKINGS_QUERY = gql`
+  query MyBookings {
+    myBookings {
+      id
+      status
+      createdAt
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      service_type
+      from_address
+      to_address
+    }
+  }
+`;
 
 const Bookings: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data: bookings, isLoading } = useQuery({
-    queryKey: ['bookings', user?.id, statusFilter],
-    queryFn: async () => {
-      if (!user) return [];
-      let query = supabase
-        .from('moving_bookings')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data } = await query;
-      return data || [];
-    },
-    enabled: !!user,
+  const { data, loading: isLoading } = useQuery(MY_BOOKINGS_QUERY, {
+    skip: !user,
+    fetchPolicy: 'network-only',
   });
+  const bookings = data?.myBookings || [];
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -43,11 +47,62 @@ const Bookings: React.FC = () => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: 'numeric',
       hour12: true
     });
+  };
+
+  const renderDateTime = (booking) => {
+    if (booking.dateTime) {
+      return (
+        <>
+          <div className="flex items-center space-x-2 text-sm">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span>{formatDate(booking.dateTime)}</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>{formatTime(booking.dateTime)}</span>
+          </div>
+        </>
+      );
+    } else if (booking.dateTimeFlexible) {
+      try {
+        const flex = JSON.parse(booking.dateTimeFlexible);
+        const flexLabels = {
+          flexible: "Flexible timing (we'll call to arrange)",
+          morning: "Morning (8:00 - 12:00)",
+          afternoon: "Afternoon (12:00 - 17:00)",
+          weekend: "Weekend preferred"
+        };
+        return (
+          <>
+            <div className="flex items-center space-x-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>{flex.date ? formatDate(flex.date) : ''}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span>{flexLabels[flex.time] || flex.time}</span>
+            </div>
+          </>
+        );
+      } catch {
+        return (
+          <div className="flex items-center space-x-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>{booking.dateTimeFlexible}</span>
+          </div>
+        );
+      }
+    } else {
+      return null;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -158,7 +213,7 @@ const Bookings: React.FC = () => {
           {filteredBookings.map((booking) => {
             const ServiceIcon = getServiceIcon(booking.service_type);
             return (
-              <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+              <Card key={booking.id || booking._id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -167,10 +222,10 @@ const Bookings: React.FC = () => {
                       </div>
                       <div>
                         <CardTitle className="text-lg capitalize">
-                          {booking.service_type}
+                          {booking.service_type || 'moving'}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Booking #{booking.id.slice(-8)}
+                          Booking #{(booking.id || booking._id || '').toString().slice(-8)}
                         </p>
                       </div>
                     </div>
@@ -178,37 +233,26 @@ const Bookings: React.FC = () => {
                       variant="secondary" 
                       className={cn("text-xs", getStatusColor(booking.status))}
                     >
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
                     </Badge>
                   </div>
                 </CardHeader>
-                
                 <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(booking.date_time)}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatTime(booking.date_time)}</span>
-                  </div>
-                  
+                  {renderDateTime(booking)}
                   <div className="space-y-1">
                     <div className="flex items-start space-x-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-medium">From:</p>
-                        <p className="text-muted-foreground">{booking.from_address}</p>
+                        <p className="text-muted-foreground">{booking.from_address || booking.addresses?.from}</p>
                       </div>
                     </div>
-                    
-                    {booking.to_address && (
+                    {(booking.to_address || booking.addresses?.to) && (
                       <div className="flex items-start space-x-2 text-sm">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium">To:</p>
-                          <p className="text-muted-foreground">{booking.to_address}</p>
+                          <p className="text-muted-foreground">{booking.to_address || booking.addresses?.to}</p>
                         </div>
                       </div>
                     )}

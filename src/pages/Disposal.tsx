@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Trash2, Recycle, Home, Building } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 
 const Disposal: React.FC = () => {
   const navigate = useNavigate();
@@ -19,12 +19,8 @@ const Disposal: React.FC = () => {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      return data;
+      // TODO: Fetch user profile from Node.js/MongoDB backend
+      return null;
     },
     enabled: !!user,
   });

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 
 export const useOnboardingStatus = () => {
   const { user } = useAuth();
@@ -17,18 +17,9 @@ export const useOnboardingStatus = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching onboarding status:', error);
-          setOnboardingCompleted(false);
-        } else {
-          setOnboardingCompleted(data?.onboarding_completed || false);
-        }
+        // Supabase query logic removed
+        // setOnboardingCompleted(data?.onboarding_completed || false);
+        setOnboardingCompleted(false); // Placeholder
       } catch (error) {
         console.error('Error:', error);
         setOnboardingCompleted(false);
@@ -44,16 +35,9 @@ export const useOnboardingStatus = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', user.id);
-
-      if (!error) {
-        setOnboardingCompleted(true);
-      } else {
-        console.error('Error updating onboarding status:', error);
-      }
+      // Supabase update logic removed
+      // setOnboardingCompleted(true);
+      console.log('Onboarding complete marked for user:', user.id); // Placeholder
     } catch (error) {
       console.error('Error updating onboarding status:', error);
     }

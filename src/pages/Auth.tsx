@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,20 +18,31 @@ const Auth: React.FC = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // Simulate authentication
-    setTimeout(() => {
+    let result;
+    if (isLogin) {
+      result = await signIn(email, password);
+    } else {
+      result = await signUp(email, password, fullName);
+    }
+    setLoading(false);
+    if (!result?.error) {
       toast({
-        title: "Success",
-        description: isLogin ? "Logged in successfully!" : "Account created successfully!",
+        title: 'Success',
+        description: isLogin ? 'Logged in successfully!' : 'Account created successfully!',
       });
-      setLoading(false);
       navigate('/home');
-    }, 1000);
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Authentication failed',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

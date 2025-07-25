@@ -17,7 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Integrate with Node.js/MongoDB backend for support data
 import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -36,12 +36,8 @@ const Support: React.FC = () => {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      return data;
+      // TODO: Fetch support data from backend
+      return null;
     },
     enabled: !!user,
   });

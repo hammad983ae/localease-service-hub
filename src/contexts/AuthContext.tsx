@@ -1,16 +1,23 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { useApolloClient, gql } from '@apollo/client';
+
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  phone?: string;
+  address?: string;
+  [key: string]: any;
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  updateProfile: (updates: { onboarding_completed?: boolean; full_name?: string }) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any } | undefined>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any } | undefined>;
+  signOut: () => void;
+  updateProfile: (updates: { full_name?: string; phone?: string; address?: string }) => Promise<{ error: any } | undefined>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,73 +30,161 @@ export const useAuth = () => {
   return context;
 };
 
+const API_BASE = 'http://localhost:5002/graphql';
+
+const ME_QUERY = gql`
+  query Me {
+    me {
+      id
+      email
+      full_name
+      phone
+      address
+    }
+  }
+`;
+
+const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        id
+        email
+        full_name
+        phone
+        address
+      }
+    }
+  }
+`;
+
+const REGISTER_MUTATION = gql`
+  mutation Register($email: String!, $password: String!, $full_name: String) {
+    register(email: $email, password: $password, full_name: $full_name) {
+      token
+      user {
+        id
+        email
+        full_name
+        phone
+        address
+      }
+    }
+  }
+`;
+
+const UPDATE_PROFILE_MUTATION = gql`
+  mutation UpdateProfile($full_name: String, $phone: String, $address: String) {
+    updateProfile(full_name: $full_name, phone: $phone, address: $address) {
+      id
+      email
+      full_name
+      phone
+      address
+    }
+  }
+`;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const client = useApolloClient();
 
+  // Helper: Get JWT from localStorage
+  const getToken = () => localStorage.getItem('token');
+  // Helper: Set JWT to localStorage
+  const setToken = (token: string | null) => {
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
+  };
+
+  // Fetch user profile if token exists
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = getToken();
+    if (!token) {
+      setUser(null);
       setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+      return;
+    }
+    setLoading(true);
+    client
+      .query({ query: ME_QUERY, fetchPolicy: 'network-only' })
+      .then((res) => {
+        setUser(res.data.me);
+      })
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line
   }, []);
 
+  // Sign in
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    setLoading(true);
+    try {
+      const res = await client.mutate({
+        mutation: LOGIN_MUTATION,
+        variables: { email, password },
+      });
+      const { token, user } = res.data.login;
+      setToken(token);
+      setUser(user);
+      setLoading(false);
+      return { error: null };
+    } catch (error: any) {
+      setUser(null);
+      setToken(null);
+      setLoading(false);
+      return { error: error.message };
+    }
   };
 
+  // Sign up
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName || ''
-        }
-      }
-    });
-    return { error };
+    setLoading(true);
+    try {
+      const res = await client.mutate({
+        mutation: REGISTER_MUTATION,
+        variables: { email, password, full_name: fullName },
+      });
+      const { token, user } = res.data.register;
+      setToken(token);
+      setUser(user);
+      setLoading(false);
+      return { error: null };
+    } catch (error: any) {
+      setLoading(false);
+      return { error: error.message };
+    }
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  // Sign out
+  const signOut = () => {
+    setUser(null);
+    setToken(null);
   };
 
-  const updateProfile = async (updates: { onboarding_completed?: boolean; full_name?: string }) => {
-    if (!user) return { error: new Error('No user logged in') };
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
-
-    return { error };
+  // Update profile
+  const updateProfile = async (updates: { full_name?: string; phone?: string; address?: string }) => {
+    const token = getToken();
+    if (!token) return { error: 'Not authenticated' };
+    setLoading(true);
+    try {
+      const res = await client.mutate({
+        mutation: UPDATE_PROFILE_MUTATION,
+        variables: updates,
+      });
+      setUser(res.data.updateProfile);
+      setLoading(false);
+      return { error: null };
+    } catch (error: any) {
+      setLoading(false);
+      return { error: error.message };
+    }
   };
 
   const value = {
     user,
-    session,
     loading,
     signIn,
     signUp,

@@ -1,3 +1,13 @@
+# LocalEase Service Hub
+
+## Backend Architecture (Updated)
+- **Backend:** Node.js with Express.js
+- **Authentication:** JWT (JSON Web Token) based authentication
+- **Database:** MongoDB (via Mongoose)
+- **Password Hashing:** bcryptjs
+- **CORS:** Enabled for frontend-backend communication
+- **Supabase:** All Supabase dependencies have been removed
+
 # Welcome to your Lovable project
 
 ## Project info

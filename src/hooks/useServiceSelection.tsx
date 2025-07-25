@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,20 +31,21 @@ export const useServiceSelection = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('user_service_selections')
-        .upsert({
-          user_id: user.id,
-          service_type: serviceType,
-          selection_type: selectionType,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,service_type'
-        });
+      // TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
+      // const { error } = await supabase
+      //   .from('user_service_selections')
+      //   .upsert({
+      //     user_id: user.id,
+      //     service_type: serviceType,
+      //     selection_type: selectionType,
+      //     updated_at: new Date().toISOString()
+      //   }, {
+      //     onConflict: 'user_id,service_type'
+      //   });
 
-      if (error) {
-        throw error;
-      }
+      // if (error) {
+      //   throw error;
+      // }
 
       return true;
     } catch (error: any) {
@@ -64,24 +65,22 @@ export const useServiceSelection = () => {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('user_service_selections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_type', serviceType)
-        .maybeSingle();
+      // TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
+      // const { data, error } = await supabase
+      //   .from('user_service_selections')
+      //   .select('*')
+      //   .eq('user_id', user.id)
+      //   .eq('service_type', serviceType)
+      //   .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
+      // if (error) {
+      //   throw error;
+      // }
 
-      if (!data) return null;
+      // if (!data) return null;
 
       // Type assertion to ensure selection_type is properly typed
-      return {
-        ...data,
-        selection_type: data.selection_type as 'quote' | 'supplier'
-      } as ServiceSelection;
+      return null; // Placeholder return
     } catch (error: any) {
       console.error('Error fetching service selection:', error);
       return null;

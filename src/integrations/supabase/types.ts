@@ -1,3 +1,5 @@
+// This file is deprecated. Supabase has been removed from the project.
+// All types are now managed by the Node.js backend and MongoDB.
 export type Json =
   | string
   | number
