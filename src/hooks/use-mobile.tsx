@@ -15,5 +15,7 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
+  // TODO: Replace with Node.js/MongoDB-based data integration
+
   return !!isMobile
 }
