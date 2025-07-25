@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,15 +17,27 @@ import Bookings from "./pages/Bookings";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Admin from "./pages/Admin";
+import CompanyOnboarding from "./pages/CompanyOnboarding";
+import CompanyDashboard from "./pages/CompanyDashboard";
 
 const queryClient = new QueryClient();
 
+// Protected route for admin users
 const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user || user.role !== 'admin') return <Navigate to="/home" replace />;
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/home" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Protected route for company users
+const ProtectedCompanyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  if (!user || user.role !== 'company') {
+    return <Navigate to="/home" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -35,25 +48,25 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
-                <Route path="/" element={<Layout />}>
-                  <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                  <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
-                  <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
-                  <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
-                  <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-                  <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
+              <Route path="/company-onboarding" element={<ProtectedCompanyRoute><CompanyOnboarding /></ProtectedCompanyRoute>} />
+              <Route path="/company-dashboard" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
+              <Route path="/" element={<Layout />}>
+                <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
+                <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
+                <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
+                <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+                <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>
     </QueryClientProvider>
