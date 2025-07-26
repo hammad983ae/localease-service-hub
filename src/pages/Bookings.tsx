@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car } from 'lucide-react';
 import { useQuery, gql } from '@apollo/client';
 import { cn } from '@/lib/utils';
-import ChatBot from '@/components/ChatBot';
 
 const MY_BOOKINGS_QUERY = gql`
   query MyBookings {
@@ -188,7 +187,7 @@ const Bookings: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -302,9 +301,6 @@ const Bookings: React.FC = () => {
           })}
         </div>
       )}
-
-      {/* Add ChatBot component */}
-      <ChatBot userType="customer" />
     </div>
   );
 };
