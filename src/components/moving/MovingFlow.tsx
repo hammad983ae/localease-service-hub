@@ -24,6 +24,7 @@ interface Company {
 }
 
 interface MovingFlowProps {
+  type: 'quote' | 'supplier';
   onBack: () => void;
 }
 
@@ -67,7 +68,7 @@ const CREATE_BOOKING = gql`
   }
 `;
 
-const MovingFlow: React.FC<MovingFlowProps> = ({ onBack }) => {
+const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const [step, setStep] = useState(1);
   const [companyId, setCompanyId] = useState('');
   const [dateTime, setDateTime] = useState<Date | undefined>(undefined);
@@ -150,7 +151,9 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ onBack }) => {
       <div className="max-w-3xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Moving Service Booking</CardTitle>
+            <CardTitle>
+              {type === 'quote' ? 'Get Moving Quote' : 'Book Moving Service'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {step === 1 && (
