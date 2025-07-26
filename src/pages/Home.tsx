@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Package, Truck, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import ServiceCard from '../components/ServiceCard';
 import RecentBookingCard from '../components/RecentBookingCard';
@@ -12,6 +12,37 @@ import ChatBot from '@/components/ChatBot';
 
 const Home = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+
+  const services = [
+    {
+      id: 'moving',
+      icon: Truck,
+      label: t('home.movingService'),
+      description: t('home.movingDescription'),
+      color: 'bg-blue-50 text-blue-600',
+      route: '/moving',
+      available: true,
+    },
+    {
+      id: 'disposal',
+      icon: Trash2,
+      label: t('home.disposalService'),
+      description: t('home.disposalDescription'),
+      color: 'bg-red-50 text-red-600',
+      route: '/disposal',
+      available: true,
+    },
+    {
+      id: 'transport',
+      icon: Package,
+      label: t('home.transportService'),
+      description: t('home.transportDescription'),
+      color: 'bg-green-50 text-green-600',
+      route: '/transport',
+      available: true,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,24 +68,19 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-semibold text-center mb-8">{t('home.servicesTitle')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ServiceCard
-              title={t('home.movingService')}
-              description={t('home.movingDescription')}
-              icon={Truck}
-              link="/moving"
-            />
-            <ServiceCard
-              title={t('home.disposalService')}
-              description={t('home.disposalDescription')}
-              icon={Trash2}
-              link="/disposal"
-            />
-            <ServiceCard
-              title={t('home.transportService')}
-              description={t('home.transportDescription')}
-              icon={Package}
-              link="/transport"
-            />
+            {services.map((service) => (
+              <ServiceCard
+                key={service.id}
+                id={service.id}
+                icon={service.icon}
+                label={service.label}
+                description={service.description}
+                color={service.color}
+                route={service.route}
+                available={service.available}
+                onClick={() => navigate(service.route)}
+              />
+            ))}
           </div>
         </div>
       </section>
