@@ -44,6 +44,15 @@ const priceRanges = [
   '$1000+'
 ];
 
+const companyTypes = [
+  'Moving',
+  'Disposal',
+  'Transport',
+  'Cleaning',
+  'Storage',
+  'Other'
+];
+
 const CompanyOnboarding: React.FC = () => {
   const [form, setForm] = useState({
     name: '',
@@ -52,14 +61,15 @@ const CompanyOnboarding: React.FC = () => {
     address: '',
     description: '',
     services: [] as string[],
-    priceRange: ''
+    priceRange: '',
+    companyType: ''
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [createCompanyProfile, { loading }] = useMutation(CREATE_COMPANY_PROFILE);
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -119,6 +129,22 @@ const CompanyOnboarding: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="description">Company Description</Label>
                 <Textarea id="description" name="description" value={form.description} onChange={handleChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyType">Company Type</Label>
+                <select
+                  id="companyType"
+                  name="companyType"
+                  value={form.companyType}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Select type...</option>
+                  {companyTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-3">
                 <Label>Services Offered</Label>

@@ -8,6 +8,7 @@ const companySchema = new mongoose.Schema({
   description: String,
   services: [String],
   priceRange: String,
+  companyType: String,
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now }
 });

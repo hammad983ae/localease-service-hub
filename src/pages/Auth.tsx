@@ -28,8 +28,9 @@ const Auth: React.FC = () => {
     if (isLogin) {
       result = await signIn(email, password);
     } else {
-      // Fix: Call signUp with correct number of arguments
-      result = await signUp(email, password, fullName);
+      // Pass role based on isCompany
+      const role = isCompany ? 'company' : 'user';
+      result = await signUp(email, password, fullName, role);
     }
     setLoading(false);
     if (!result?.error) {

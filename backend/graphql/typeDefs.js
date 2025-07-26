@@ -28,6 +28,7 @@ export const typeDefs = gql`
     description: String
     services: [String]
     priceRange: String
+    companyType: String
     userId: ID!
     createdAt: Date
   }
@@ -44,6 +45,80 @@ export const typeDefs = gql`
     company: Company
     status: String
     createdAt: Date
+  }
+
+  type DisposalItem {
+    type: String!
+    description: String
+    quantity: Int
+    photos: [String]
+    specialInstructions: String
+  }
+
+  type DisposalBooking {
+    id: ID!
+    userId: ID!
+    serviceType: String!
+    items: [DisposalItem]
+    dateTime: Date
+    dateTimeFlexible: String
+    pickupAddress: PickupAddress
+    contact: Contact
+    company: Company
+    status: String
+    estimatedCost: Float
+    createdAt: Date
+  }
+
+  type TransportItem {
+    type: String!
+    description: String
+    dimensions: ItemDimensions
+    quantity: Int
+    specialInstructions: String
+    fragile: Boolean
+    insuranceRequired: Boolean
+  }
+
+  type ItemDimensions {
+    length: Float
+    width: Float
+    height: Float
+    weight: Float
+  }
+
+  type TransportBooking {
+    id: ID!
+    userId: ID!
+    serviceType: String!
+    items: [TransportItem]
+    dateTime: Date
+    dateTimeFlexible: String
+    pickupLocation: Location
+    dropoffLocation: Location
+    contact: Contact
+    company: Company
+    status: String
+    estimatedCost: Float
+    estimatedTime: String
+    createdAt: Date
+  }
+
+  type PickupAddress {
+    street: String
+    city: String
+    state: String
+    zipCode: String
+    fullAddress: String
+  }
+
+  type Location {
+    street: String
+    city: String
+    state: String
+    zipCode: String
+    fullAddress: String
+    instructions: String
   }
 
   type Address {
@@ -76,12 +151,24 @@ export const typeDefs = gql`
     me: User
     myProfile: UserProfile
     myBookings: [MovingBooking]
+    myDisposalBookings: [DisposalBooking]
+    myTransportBookings: [TransportBooking]
     booking(id: ID!): MovingBooking
+    disposalBooking(id: ID!): DisposalBooking
+    transportBooking(id: ID!): TransportBooking
     allBookings: [MovingBooking]
+    allDisposalBookings: [DisposalBooking]
+    allTransportBookings: [TransportBooking]
     approvedBookings: [MovingBooking]
+    approvedDisposalBookings: [DisposalBooking]
+    approvedTransportBookings: [TransportBooking]
     rejectedBookings: [MovingBooking]
+    rejectedDisposalBookings: [DisposalBooking]
+    rejectedTransportBookings: [TransportBooking]
     allCompanies: [Company]
     companyBookings: [MovingBooking]
+    companyDisposalBookings: [DisposalBooking]
+    companyTransportBookings: [TransportBooking]
   }
 
   type Mutation {
@@ -98,11 +185,38 @@ export const typeDefs = gql`
       contact: ContactInput,
       company: CompanyInput
     ): MovingBooking
+    createDisposalBooking(
+      serviceType: String!,
+      items: [DisposalItemInput],
+      dateTime: Date,
+      dateTimeFlexible: String,
+      pickupAddress: PickupAddressInput,
+      contact: ContactInput,
+      company: CompanyInput
+    ): DisposalBooking
+    createTransportBooking(
+      serviceType: String!,
+      items: [TransportItemInput],
+      dateTime: Date,
+      dateTimeFlexible: String,
+      pickupLocation: LocationInput,
+      dropoffLocation: LocationInput,
+      contact: ContactInput,
+      company: CompanyInput
+    ): TransportBooking
     approveBooking(id: ID!): MovingBooking
     rejectBooking(id: ID!): MovingBooking
+    approveDisposalBooking(id: ID!): DisposalBooking
+    rejectDisposalBooking(id: ID!): DisposalBooking
+    approveTransportBooking(id: ID!): TransportBooking
+    rejectTransportBooking(id: ID!): TransportBooking
     companyApproveBooking(id: ID!): MovingBooking
     companyRejectBooking(id: ID!): MovingBooking
-    createCompanyProfile(name: String!, email: String!, phone: String, address: String, description: String, services: [String!], priceRange: String): Company
+    companyApproveDisposalBooking(id: ID!): DisposalBooking
+    companyRejectDisposalBooking(id: ID!): DisposalBooking
+    companyApproveTransportBooking(id: ID!): TransportBooking
+    companyRejectTransportBooking(id: ID!): TransportBooking
+    createCompanyProfile(name: String!, email: String!, phone: String, address: String, description: String, services: [String!], priceRange: String, companyType: String): Company
   }
 
   input RoomInput {
@@ -135,5 +249,48 @@ export const typeDefs = gql`
     image_url: String
     contact_phone: String
     contact_email: String
+    companyType: String
+  }
+
+  input DisposalItemInput {
+    type: String!
+    description: String
+    quantity: Int
+    photos: [String]
+    specialInstructions: String
+  }
+
+  input TransportItemInput {
+    type: String!
+    description: String
+    dimensions: ItemDimensionsInput
+    quantity: Int
+    specialInstructions: String
+    fragile: Boolean
+    insuranceRequired: Boolean
+  }
+
+  input ItemDimensionsInput {
+    length: Float
+    width: Float
+    height: Float
+    weight: Float
+  }
+
+  input PickupAddressInput {
+    street: String
+    city: String
+    state: String
+    zipCode: String
+    fullAddress: String
+  }
+
+  input LocationInput {
+    street: String
+    city: String
+    state: String
+    zipCode: String
+    fullAddress: String
+    instructions: String
   }
 `; 

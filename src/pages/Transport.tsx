@@ -7,12 +7,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Car, Truck, Package, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import TransportFlow from '@/components/transport/TransportFlow';
 // TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 
 const Transport: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<'quote' | 'supplier' | null>(null);
 
   // Fetch user profile to get the full name
   const { data: profile } = useQuery({
@@ -67,6 +69,26 @@ const Transport: React.FC = () => {
   const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
   const firstName = userName.split(' ')[0];
 
+  const handleServiceClick = (service: typeof transportServices[0]) => {
+    if (service.available) {
+      setSelectedService(service.id);
+      // For now, default to quote type - could add a selection dialog later
+      setSelectedType('quote');
+    }
+  };
+
+  if (selectedType) {
+    return (
+      <TransportFlow
+        type={selectedType}
+        onBack={() => {
+          setSelectedType(null);
+          setSelectedService(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-2xl mx-auto">
       {/* Header Section */}
@@ -103,7 +125,7 @@ const Transport: React.FC = () => {
             className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
               service.available ? "hover:bg-muted/30" : "opacity-60 cursor-not-allowed"
             }`}
-            onClick={() => service.available && setSelectedService(service.id)}
+            onClick={() => handleServiceClick(service)}
           >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">

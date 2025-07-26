@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any } | undefined>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any } | undefined>;
+  signUp: (email: string, password: string, fullName?: string, role?: string) => Promise<{ error: any } | undefined>;
   signOut: () => void;
   updateProfile: (updates: { full_name?: string; phone?: string; address?: string }) => Promise<{ error: any } | undefined>;
 }
