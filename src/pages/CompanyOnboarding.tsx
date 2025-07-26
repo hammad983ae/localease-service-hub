@@ -7,44 +7,64 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
-import { Building2, MapPin, Phone, Mail } from 'lucide-react';
+import { gql, useMutation } from '@apollo/client';
+
+const CREATE_COMPANY_PROFILE = gql`
+  mutation CreateCompanyProfile($name: String!, $email: String!, $phone: String, $address: String, $description: String, $services: [String!], $priceRange: String) {
+    createCompanyProfile(name: $name, email: $email, phone: $phone, address: $address, description: $description, services: $services, priceRange: $priceRange) {
+      id
+      name
+      email
+      phone
+      address
+      description
+      services
+      priceRange
+      createdAt
+    }
+  }
+`;
+
+const availableServices = [
+  'Local Moving',
+  'Long Distance Moving',
+  'Office Moving',
+  'Packing Services',
+  'Storage Solutions',
+  'Furniture Assembly',
+  'Cleaning Services',
+  'Waste Disposal'
+];
+
+const priceRanges = [
+  '$50 - $100',
+  '$100 - $200',
+  '$200 - $500',
+  '$500 - $1000',
+  '$1000+'
+];
 
 const CompanyOnboarding: React.FC = () => {
-  const [formData, setFormData] = useState({
-    description: '',
-    location: '',
-    phone: '',
+  const [form, setForm] = useState({
+    name: '',
     email: '',
+    phone: '',
+    address: '',
+    description: '',
     services: [] as string[],
-    priceRange: '',
+    priceRange: ''
   });
-  
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [createCompanyProfile, { loading }] = useMutation(CREATE_COMPANY_PROFILE);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  const availableServices = [
-    'Local Moving',
-    'Long Distance Moving',
-    'Office Moving',
-    'Packing Services',
-    'Storage Solutions',
-    'Furniture Assembly',
-    'Cleaning Services',
-    'Waste Disposal'
-  ];
-
-  const priceRanges = [
-    '$50 - $100',
-    '$100 - $200',
-    '$200 - $500',
-    '$500 - $1000',
-    '$1000+'
-  ];
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleServiceToggle = (service: string) => {
-    setFormData(prev => ({
+    setForm(prev => ({
       ...prev,
       services: prev.services.includes(service)
         ? prev.services.filter(s => s !== service)
@@ -54,27 +74,15 @@ const CompanyOnboarding: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const updatedUser = {
-        ...existingUser,
-        ...formData,
-        onboarding_completed: true
-      };
-
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      toast({
-        title: 'Success',
-        description: 'Company profile completed successfully!',
-      });
-
-      setLoading(false);
-      navigate('/company-dashboard');
-    }, 1000);
+    setError(null);
+    setSuccess(null);
+    try {
+      const { data } = await createCompanyProfile({ variables: form });
+      setSuccess('Company profile created! Redirecting to dashboard...');
+      setTimeout(() => navigate('/company-dashboard'), 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create company profile');
+    }
   };
 
   return (
@@ -83,73 +91,35 @@ const CompanyOnboarding: React.FC = () => {
         <Card>
           <CardHeader className="text-center">
             <div className="w-16 h-16 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
-              <Building2 className="h-8 w-8 text-white" />
+              {/* Icon can go here */}
             </div>
             <CardTitle className="text-2xl">Complete Your Company Profile</CardTitle>
             <p className="text-muted-foreground">
               Tell us about your company to start receiving service requests
             </p>
           </CardHeader>
-          
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="description">Company Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Tell customers about your company..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  required
-                />
+                <Label htmlFor="name">Company Name</Label>
+                <Input id="name" name="name" value={form.name} onChange={handleChange} required />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location">
-                    <MapPin className="h-4 w-4 inline mr-1" />
-                    Location
-                  </Label>
-                  <Input
-                    id="location"
-                    placeholder="City, State"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">
-                    <Phone className="h-4 w-4 inline mr-1" />
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+1 (555) 123-4567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  <Mail className="h-4 w-4 inline mr-1" />
-                  Business Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="business@company.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
+                <Label htmlFor="email">Business Email</Label>
+                <Input id="email" name="email" type="email" value={form.email} onChange={handleChange} required />
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" name="phone" value={form.phone} onChange={handleChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" name="address" value={form.address} onChange={handleChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Company Description</Label>
+                <Textarea id="description" name="description" value={form.description} onChange={handleChange} required />
+              </div>
               <div className="space-y-3">
                 <Label>Services Offered</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -157,7 +127,7 @@ const CompanyOnboarding: React.FC = () => {
                     <div key={service} className="flex items-center space-x-2">
                       <Checkbox
                         id={service}
-                        checked={formData.services.includes(service)}
+                        checked={form.services.includes(service)}
                         onCheckedChange={() => handleServiceToggle(service)}
                       />
                       <Label htmlFor={service} className="text-sm">{service}</Label>
@@ -165,7 +135,6 @@ const CompanyOnboarding: React.FC = () => {
                   ))}
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label>Price Range</Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -173,8 +142,8 @@ const CompanyOnboarding: React.FC = () => {
                     <Button
                       key={range}
                       type="button"
-                      variant={formData.priceRange === range ? 'default' : 'outline'}
-                      onClick={() => setFormData(prev => ({ ...prev, priceRange: range }))}
+                      variant={form.priceRange === range ? 'default' : 'outline'}
+                      onClick={() => setForm(prev => ({ ...prev, priceRange: range }))}
                       className="text-sm"
                     >
                       {range}
@@ -182,14 +151,15 @@ const CompanyOnboarding: React.FC = () => {
                   ))}
                 </div>
               </div>
-
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading || formData.services.length === 0}
+                disabled={loading || form.services.length === 0}
               >
                 {loading ? 'Setting up...' : 'Complete Setup'}
               </Button>
+              {error && <div className="text-red-600 text-sm mt-2">Error: {error}</div>}
+              {success && <div className="text-green-600 text-sm mt-2">{success}</div>}
             </form>
           </CardContent>
         </Card>

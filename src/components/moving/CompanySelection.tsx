@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Star, MapPin, Phone, Mail, CheckCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { gql, useQuery } from '@apollo/client';
 // TODO: Integrate with Node.js/MongoDB backend for company selection data
 import { cn } from '@/lib/utils';
 
@@ -28,16 +28,26 @@ interface CompanySelectionProps {
   selectedCompany: Company | null;
 }
 
+const ALL_COMPANIES_QUERY = gql`
+  query AllCompanies {
+    allCompanies {
+      id
+      name
+      description
+      services
+      priceRange
+      email
+      phone
+      address
+    }
+  }
+`;
+
 const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, selectedCompany }) => {
   const { t } = useLanguage();
 
-  const { data: companies, isLoading } = useQuery({
-    queryKey: ['moving_companies'],
-    queryFn: async () => {
-      // TODO: Fetch company data from backend
-      return [];
-    },
-  });
+  const { data, loading } = useQuery(ALL_COMPANIES_QUERY);
+  const companies = data?.allCompanies || [];
 
   const getPriceRangeColor = (priceRange: string) => {
     switch (priceRange) {
@@ -64,7 +74,7 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
     ));
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="text-center space-y-4 mb-8">
@@ -108,55 +118,21 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
               )}
               onClick={() => onCompanySelect(company)}
             >
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <CardTitle className="text-xl">{company.name}</CardTitle>
-                      {isSelected && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    </div>
-                    <div className="flex items-center space-x-4 mb-3">
-                      <div className="flex items-center space-x-1">
-                        {renderStars(company.rating)}
-                        <span className="text-sm font-medium ml-1">{company.rating}</span>
-                        <span className="text-sm text-muted-foreground">
-                          ({company.total_reviews} reviews)
-                        </span>
-                      </div>
-                      <Badge className={getPriceRangeColor(company.price_range)}>
-                        {company.price_range}
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground text-sm mb-4">{company.description}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.contact_phone}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.contact_email}</span>
-                    </div>
-                  </div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium text-sm mb-2">Services:</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {company.services.map((service) => (
-                        <Badge key={service} variant="outline" className="text-xs">
-                          {service.replace('_', ' ')}
-                        </Badge>
+                    <CardTitle className="text-lg font-semibold mb-1">{company.name}</CardTitle>
+                    <div className="text-sm text-muted-foreground mb-2">{company.description}</div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {company.services?.map((service: string) => (
+                        <Badge key={service} variant="secondary">{service}</Badge>
                       ))}
                     </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className={cn("px-2 py-1 rounded", getPriceRangeColor(company.priceRange))}>{company.priceRange || 'N/A'}</span>
+                    </div>
                   </div>
+                  {isSelected && <CheckCircle className="h-6 w-6 text-blue-500" />}
                 </div>
               </CardContent>
             </Card>

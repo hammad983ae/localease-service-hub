@@ -33,7 +33,7 @@ const ALL_BOOKINGS_QUERY = gql`
       contact { name email phone notes }
       rooms { room floor count }
       items
-      company { name contact_email contact_phone }
+      company { name email phone }
     }
   }
 `;
@@ -49,10 +49,36 @@ const REJECT_BOOKING_MUTATION = gql`
   }
 `;
 const APPROVED_BOOKINGS_QUERY = gql`
-  query ApprovedBookings { approvedBookings { id status createdAt dateTime dateTimeFlexible addresses { from to } contact { name email phone notes } rooms { room floor count } items company { name contact_email contact_phone } } }
+  query ApprovedBookings {
+    approvedBookings {
+      id
+      status
+      createdAt
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      contact { name email phone notes }
+      rooms { room floor count }
+      items
+      company { name email phone }
+    }
+  }
 `;
 const REJECTED_BOOKINGS_QUERY = gql`
-  query RejectedBookings { rejectedBookings { id status createdAt dateTime dateTimeFlexible addresses { from to } contact { name email phone notes } rooms { room floor count } items company { name contact_email contact_phone } } }
+  query RejectedBookings {
+    rejectedBookings {
+      id
+      status
+      createdAt
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      contact { name email phone notes }
+      rooms { room floor count }
+      items
+      company { name email phone }
+    }
+  }
 `;
 
 const Admin: React.FC = () => {

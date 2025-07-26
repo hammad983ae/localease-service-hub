@@ -20,17 +20,16 @@ export const typeDefs = gql`
   }
 
   type Company {
-    id: String
+    id: ID
     name: String
+    email: String
+    phone: String
+    address: String
     description: String
-    rating: Float
-    total_reviews: Int
-    location: String
     services: [String]
-    price_range: String
-    image_url: String
-    contact_phone: String
-    contact_email: String
+    priceRange: String
+    userId: ID!
+    createdAt: Date
   }
 
   type MovingBooking {
@@ -64,19 +63,32 @@ export const typeDefs = gql`
     user: User!
   }
 
+  type UserProfile {
+    id: ID!
+    userId: ID!
+    full_name: String
+    phone: String
+    address: String
+    createdAt: Date
+  }
+
   type Query {
     me: User
+    myProfile: UserProfile
     myBookings: [MovingBooking]
     booking(id: ID!): MovingBooking
     allBookings: [MovingBooking]
     approvedBookings: [MovingBooking]
     rejectedBookings: [MovingBooking]
+    allCompanies: [Company]
+    companyBookings: [MovingBooking]
   }
 
   type Mutation {
-    register(email: String!, password: String!, full_name: String, phone: String, address: String): AuthPayload
+    register(email: String!, password: String!, full_name: String, phone: String, address: String, role: String): AuthPayload
     login(email: String!, password: String!): AuthPayload
     updateProfile(full_name: String, phone: String, address: String): User
+    updateUserProfile(full_name: String, phone: String, address: String): UserProfile
     createMovingBooking(
       rooms: [RoomInput],
       items: JSON,
@@ -88,6 +100,9 @@ export const typeDefs = gql`
     ): MovingBooking
     approveBooking(id: ID!): MovingBooking
     rejectBooking(id: ID!): MovingBooking
+    companyApproveBooking(id: ID!): MovingBooking
+    companyRejectBooking(id: ID!): MovingBooking
+    createCompanyProfile(name: String!, email: String!, phone: String, address: String, description: String, services: [String!], priceRange: String): Company
   }
 
   input RoomInput {

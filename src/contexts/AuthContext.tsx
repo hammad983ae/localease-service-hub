@@ -63,8 +63,8 @@ const LOGIN_MUTATION = gql`
 `;
 
 const REGISTER_MUTATION = gql`
-  mutation Register($email: String!, $password: String!, $full_name: String) {
-    register(email: $email, password: $password, full_name: $full_name) {
+  mutation Register($email: String!, $password: String!, $full_name: String, $role: String) {
+    register(email: $email, password: $password, full_name: $full_name, role: $role) {
       token
       user {
         id
@@ -146,13 +146,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Sign up
-  const signUp = async (email: string, password: string, fullName?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string, role?: string) => {
     setLoading(true);
     try {
+      console.log('SIGNUP mutation variables:', { email, password, full_name: fullName, role });
       const res = await client.mutate({
         mutation: REGISTER_MUTATION,
-        variables: { email, password, full_name: fullName },
+        variables: { email, password, full_name: fullName, role },
       });
+      console.log('SIGNUP mutation response:', res);
       const { token, user } = res.data.register;
       setToken(token);
       setUser(user);

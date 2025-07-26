@@ -99,17 +99,36 @@ export const useBookingSubmission = () => {
       } else {
         dateTime = formattedDateTime;
       }
+      // Map company to match CompanyInput
+      let companyInput = null;
+      if (data.company) {
+        companyInput = {
+          id: data.company.id,
+          name: data.company.name,
+          description: data.company.description || '',
+          rating: data.company.rating || 0,
+          total_reviews: data.company.total_reviews || 0,
+          location: data.company.location || '',
+          services: data.company.services || [],
+          price_range: data.company.price_range || data.company.priceRange || '',
+          image_url: data.company.image_url || '',
+          contact_phone: data.company.contact_phone || data.company.phone || '',
+          contact_email: data.company.contact_email || data.company.email || '',
+        };
+      }
+      const bookingVariables = {
+        rooms: data.rooms,
+        items: data.items,
+        dateTime,
+        dateTimeFlexible,
+        addresses: data.addresses,
+        contact: data.contact,
+        company: companyInput
+      };
+      console.log('Submitting booking with variables:', bookingVariables);
       await client.mutate({
         mutation: CREATE_BOOKING_MUTATION,
-        variables: {
-          rooms: data.rooms,
-          items: data.items,
-          dateTime,
-          dateTimeFlexible,
-          addresses: data.addresses,
-          contact: data.contact,
-          company: data.company || null
-        }
+        variables: bookingVariables
       });
       toast({
         title: "Booking submitted successfully!",

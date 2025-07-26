@@ -7,57 +7,55 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, User, Building2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [accountType, setAccountType] = useState<'user' | 'company'>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [companyName, setCompanyName] = useState('');
+  const [isCompany, setIsCompany] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const userData = {
-        id: Date.now().toString(),
-        email,
-        full_name: accountType === 'user' ? fullName : companyName,
-        role: accountType,
-        account_type: accountType
-      };
-
-      localStorage.setItem('user', JSON.stringify(userData));
-      
+    let result;
+    if (isLogin) {
+      result = await signIn(email, password);
+    } else {
+      // If company, register with role 'company'
+      result = await signUp(email, password, fullName, isCompany ? 'company' : 'user');
+    }
+    setLoading(false);
+    if (!result?.error) {
       toast({
         title: 'Success',
-        description: isLogin ? 'Logged in successfully!' : 'Account created successfully!',
+        description: isLogin ? 'Logged in successfully!' : 'Account created successfully! Please sign in.',
       });
-
-      setLoading(false);
-      
       if (isLogin) {
-        if (accountType === 'company') {
-          navigate('/company-dashboard');
-        } else {
-          navigate('/home');
-        }
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (user?.role === 'admin') navigate('/admin');
+        else if (user?.role === 'company') navigate('/company-dashboard');
+        else navigate('/home');
       } else {
-        // After signup, redirect to onboarding
-        if (accountType === 'company') {
+        if (isCompany) {
           navigate('/company-onboarding');
         } else {
-          navigate('/home');
+          setIsLogin(true); // Switch to login form after registration
         }
       }
-    }, 1000);
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Authentication failed',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -94,21 +92,21 @@ const Auth: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       type="button"
-                      variant={accountType === 'user' ? 'default' : 'outline'}
-                      onClick={() => setAccountType('user')}
-                      className="flex items-center gap-2"
-                    >
-                      <User className="h-4 w-4" />
-                      User
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={accountType === 'company' ? 'default' : 'outline'}
-                      onClick={() => setAccountType('company')}
+                      variant={isCompany ? 'default' : 'outline'}
+                      onClick={() => setIsCompany(true)}
                       className="flex items-center gap-2"
                     >
                       <Building2 className="h-4 w-4" />
                       Company
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!isCompany ? 'default' : 'outline'}
+                      onClick={() => setIsCompany(false)}
+                      className="flex items-center gap-2"
+                    >
+                      <User className="h-4 w-4" />
+                      User
                     </Button>
                   </div>
                 </div>
@@ -117,19 +115,13 @@ const Auth: React.FC = () => {
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="name">
-                    {accountType === 'user' ? 'Full Name' : 'Company Name'}
+                    {isCompany ? 'Company Name' : 'Full Name'}
                   </Label>
                   <Input
                     id="name"
                     type="text"
-                    value={accountType === 'user' ? fullName : companyName}
-                    onChange={(e) => {
-                      if (accountType === 'user') {
-                        setFullName(e.target.value);
-                      } else {
-                        setCompanyName(e.target.value);
-                      }
-                    }}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     required={!isLogin}
                   />
                 </div>
@@ -186,3 +178,4 @@ const Auth: React.FC = () => {
 };
 
 export default Auth;
+

@@ -17,9 +17,6 @@ const MY_BOOKINGS_QUERY = gql`
       dateTime
       dateTimeFlexible
       addresses { from to }
-      service_type
-      from_address
-      to_address
     }
   }
 `;
@@ -132,9 +129,8 @@ const Bookings: React.FC = () => {
   };
 
   const filteredBookings = bookings?.filter(booking => {
-    const matchesSearch = booking.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         booking.from_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         booking.to_address.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (booking.addresses?.from || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (booking.addresses?.to || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   }) || [];
@@ -211,7 +207,7 @@ const Bookings: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBookings.map((booking) => {
-            const ServiceIcon = getServiceIcon(booking.service_type);
+            const ServiceIcon = Truck; // Default to moving
             return (
               <Card key={booking.id || booking._id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
@@ -222,7 +218,7 @@ const Bookings: React.FC = () => {
                       </div>
                       <div>
                         <CardTitle className="text-lg capitalize">
-                          {booking.service_type || 'moving'}
+                          moving
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
                           Booking #{(booking.id || booking._id || '').toString().slice(-8)}
@@ -244,15 +240,15 @@ const Bookings: React.FC = () => {
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-medium">From:</p>
-                        <p className="text-muted-foreground">{booking.from_address || booking.addresses?.from}</p>
+                        <p className="text-muted-foreground">{booking.addresses?.from || 'N/A'}</p>
                       </div>
                     </div>
-                    {(booking.to_address || booking.addresses?.to) && (
+                    {booking.addresses?.to && (
                       <div className="flex items-start space-x-2 text-sm">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium">To:</p>
-                          <p className="text-muted-foreground">{booking.to_address || booking.addresses?.to}</p>
+                          <p className="text-muted-foreground">{booking.addresses?.to || 'N/A'}</p>
                         </div>
                       </div>
                     )}

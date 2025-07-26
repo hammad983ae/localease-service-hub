@@ -4,97 +4,77 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import AddressManager from '@/components/profile/AddressManager';
+import { gql, useQuery, useMutation } from '@apollo/client';
+import { Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
+
+const MY_PROFILE_QUERY = gql`
+  query MyProfile {
+    myProfile {
+      id
+      full_name
+      phone
+      address
+    }
+  }
+`;
+
+const UPDATE_USER_PROFILE = gql`
+  mutation UpdateUserProfile($full_name: String, $phone: String, $address: String) {
+    updateUserProfile(full_name: $full_name, phone: $phone, address: $address) {
+      id
+      full_name
+      phone
+      address
+    }
+  }
+`;
 
 const Profile: React.FC = () => {
-  const { user, signOut, updateProfile, loading } = useAuth();
-  const { toast } = useToast();
+  const { user, signOut } = useAuth();
+  const { data, loading, error, refetch } = useQuery(MY_PROFILE_QUERY, { fetchPolicy: 'network-only' });
+  const [updateUserProfile] = useMutation(UPDATE_USER_PROFILE);
+  const [formData, setFormData] = useState({ full_name: '', phone: '', address: '' });
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    address: ''
-  });
-  const [addresses, setAddresses] = useState([
-    {
-      id: '1',
-      label: 'Home',
-      address: '123 Main Street, City, State 12345',
-      isDefault: true
-    },
-    {
-      id: '2',
-      label: 'Work',
-      address: '456 Business Ave, Downtown, State 67890',
-      isDefault: false
-    }
-  ]);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (data?.myProfile) {
       setFormData({
-        full_name: user.full_name || '',
-        phone: user.phone || '',
-        address: user.address || ''
+        full_name: data.myProfile.full_name || '',
+        phone: data.myProfile.phone || '',
+        address: data.myProfile.address || ''
       });
     }
-  }, [user]);
+  }, [data]);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
+  const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
     setIsEditing(false);
-    if (user) {
+    if (data?.myProfile) {
       setFormData({
-        full_name: user.full_name || '',
-        phone: user.phone || '',
-        address: user.address || ''
+        full_name: data.myProfile.full_name || '',
+        phone: data.myProfile.phone || '',
+        address: data.myProfile.address || ''
       });
     }
   };
 
   const handleSave = async () => {
-    const result = await updateProfile(formData);
-    if (!result?.error) {
+    setErrMsg(null);
+    setSuccess(null);
+    try {
+      await updateUserProfile({ variables: formData });
+      setSuccess('Profile updated successfully!');
       setIsEditing(false);
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been successfully updated.',
-      });
-    } else {
-      toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please try again.',
-        variant: 'destructive',
-      });
+      refetch();
+    } catch (err: any) {
+      setErrMsg(err.message || 'Failed to update profile');
     }
   };
 
-  const handleSignOut = () => {
-    signOut();
-    toast({
-      title: 'Signed out',
-      description: 'You have been successfully signed out.',
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-48 bg-muted rounded"></div>
-            <div className="h-32 bg-muted rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-600">Error: {error.message}</div>;
 
   const userName = user?.full_name || user?.email || 'User';
   const firstName = userName.split(' ')[0];
@@ -103,28 +83,21 @@ const Profile: React.FC = () => {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       {/* Header Section */}
       <div className="space-y-2 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          Profile
-        </h1>
-        <p className="text-muted-foreground">
-          Hi {firstName}, manage your account information
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+        <p className="text-muted-foreground">Hi {firstName}, manage your account information</p>
       </div>
-
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Profile Info Card */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="p-3 rounded-full bg-blue-50">
-                  <User className="h-6 w-6 text-blue-600" />
+                  <Mail className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">Personal Information</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Update your personal details
-                  </p>
+                  <p className="text-sm text-muted-foreground">Update your personal details</p>
                 </div>
               </div>
               {!isEditing ? (
@@ -138,83 +111,49 @@ const Profile: React.FC = () => {
                     <X className="h-4 w-4 mr-2" />
                     Cancel
                   </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handleSave}
-                    disabled={loading}
-                  >
+                  <Button size="sm" onClick={handleSave}>
                     <Save className="h-4 w-4 mr-2" />
-                    {loading ? 'Saving...' : 'Save'}
+                    Save
                   </Button>
                 </div>
               )}
             </div>
           </CardHeader>
-          
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={user?.email || ''}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Enter your full name"
+                />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="fullName"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Enter your phone number"
+                />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your address"
-                  />
-                </div>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Enter your address"
+                />
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Address Management */}
-        <AddressManager addresses={addresses} onAddressesChange={setAddresses} />
-
         {/* Account Actions */}
         <Card>
           <CardHeader className="pb-3">
@@ -224,25 +163,17 @@ const Profile: React.FC = () => {
               </div>
               <div>
                 <CardTitle className="text-lg">Account Actions</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Manage your account settings
-                </p>
+                <p className="text-sm text-muted-foreground">Manage your account settings</p>
               </div>
             </div>
           </CardHeader>
-          
           <CardContent>
-            <Button 
-              variant="outline" 
-              onClick={handleSignOut}
-              className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
-            >
+            <Button variant="outline" onClick={signOut} className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50">
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
           </CardContent>
         </Card>
-
         {/* Account Info */}
         <Card>
           <CardContent className="p-4">
@@ -254,6 +185,10 @@ const Profile: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+      <div className="mt-6">
+        {success && <div className="text-green-600 text-sm mt-2">{success}</div>}
+        {errMsg && <div className="text-red-600 text-sm mt-2">{errMsg}</div>}
       </div>
     </div>
   );

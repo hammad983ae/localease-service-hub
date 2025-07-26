@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import {
   XCircle,
   AlertCircle
 } from 'lucide-react';
+import { gql, useQuery } from '@apollo/client';
+import { useMutation } from '@apollo/client';
 
 interface ServiceRequest {
   id: string;
@@ -33,70 +35,64 @@ interface ServiceRequest {
   notes?: string;
 }
 
-const CompanyDashboard: React.FC = () => {
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    // Load user data
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+const COMPANY_BOOKINGS_QUERY = gql`
+  query CompanyBookings {
+    companyBookings {
+      id
+      status
+      createdAt
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      contact { name email phone notes }
+      rooms { room floor count }
+      items
+      company { name email phone address }
     }
+  }
+`;
 
-    // Load mock service requests
-    const mockRequests: ServiceRequest[] = [
-      {
-        id: '1',
-        customerName: 'John Doe',
-        customerEmail: 'john@email.com',
-        customerPhone: '+1 (555) 123-4567',
-        serviceType: 'Local Moving',
-        fromAddress: '123 Main St, City A',
-        toAddress: '456 Oak Ave, City B',
-        requestedDate: '2024-01-15',
-        status: 'pending',
-        createdAt: '2024-01-10',
-        notes: 'Need help with furniture moving'
-      },
-      {
-        id: '2',
-        customerName: 'Jane Smith',
-        customerEmail: 'jane@email.com',
-        customerPhone: '+1 (555) 987-6543',
-        serviceType: 'Packing Services',
-        fromAddress: '789 Pine St, City C',
-        toAddress: '321 Elm St, City D',
-        requestedDate: '2024-01-20',
-        status: 'accepted',
-        createdAt: '2024-01-12',
-        notes: 'Fragile items need special care'
-      },
-      {
-        id: '3',
-        customerName: 'Bob Johnson',
-        customerEmail: 'bob@email.com',
-        customerPhone: '+1 (555) 555-5555',
-        serviceType: 'Office Moving',
-        fromAddress: '555 Business Blvd, City E',
-        toAddress: '777 Corporate Way, City F',
-        requestedDate: '2024-01-25',
-        status: 'completed',
-        createdAt: '2024-01-08'
+const COMPANY_APPROVE_BOOKING_MUTATION = gql`
+  mutation CompanyApproveBooking($id: ID!) {
+    companyApproveBooking(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+const COMPANY_REJECT_BOOKING_MUTATION = gql`
+  mutation CompanyRejectBooking($id: ID!) {
+    companyRejectBooking(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+const CompanyDashboard: React.FC = () => {
+  const [user, setUser] = useState<any>(() => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  });
+  const { data, loading, error, refetch } = useQuery(COMPANY_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
+  const requests = data?.companyBookings || [];
+  const [approveBooking] = useMutation(COMPANY_APPROVE_BOOKING_MUTATION);
+  const [rejectBooking] = useMutation(COMPANY_REJECT_BOOKING_MUTATION);
+
+  const handleRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') {
+        await approveBooking({ variables: { id: requestId } });
+      } else {
+        await rejectBooking({ variables: { id: requestId } });
       }
-    ];
-
-    setRequests(mockRequests);
-  }, []);
-
-  const handleRequestAction = (requestId: string, action: 'accept' | 'reject') => {
-    setRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: action === 'accept' ? 'accepted' : 'rejected' }
-          : req
-      )
-    );
+      // Refetch the data to show updated status
+      refetch();
+    } catch (error: any) {
+      console.error('Error updating booking status:', error);
+      // You could add a toast notification here
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -216,7 +212,7 @@ const CompanyDashboard: React.FC = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{request.customerName}</h3>
+                              <h3 className="font-semibold">{request.contact?.name || 'Unknown Customer'}</h3>
                               <Badge variant="outline" className={`text-${getStatusColor(request.status)}-600`}>
                                 {getStatusIcon(request.status)}
                                 {request.status}
@@ -225,36 +221,37 @@ const CompanyDashboard: React.FC = () => {
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                               <div className="space-y-1">
-                                <p className="text-sm font-medium">{request.serviceType}</p>
+                                <p className="text-sm font-medium">Moving Service</p>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
-                                  {request.customerEmail}
+                                  {request.contact?.email || 'N/A'}
                                 </p>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <Phone className="h-3 w-3" />
-                                  {request.customerPhone}
+                                  {request.contact?.phone || 'N/A'}
                                 </p>
                               </div>
                               
                               <div className="space-y-1">
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <MapPin className="h-3 w-3" />
-                                  From: {request.fromAddress}
+                                  From: {request.addresses?.from || 'N/A'}
                                 </p>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <MapPin className="h-3 w-3" />
-                                  To: {request.toAddress}
+                                  To: {request.addresses?.to || 'N/A'}
                                 </p>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {request.requestedDate}
+                                  {request.dateTime ? new Date(request.dateTime).toLocaleDateString() : 
+                                   request.dateTimeFlexible ? 'Flexible' : 'N/A'}
                                 </p>
                               </div>
                             </div>
                             
-                            {request.notes && (
+                            {request.contact?.notes && (
                               <p className="text-sm text-muted-foreground mb-3">
-                                <strong>Notes:</strong> {request.notes}
+                                <strong>Notes:</strong> {request.contact.notes}
                               </p>
                             )}
                           </div>
@@ -263,7 +260,7 @@ const CompanyDashboard: React.FC = () => {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleRequestAction(request.id, 'accept')}
+                                onClick={() => handleRequestAction(request.id, 'approve')}
                                 className="bg-green-600 hover:bg-green-700"
                               >
                                 Accept
