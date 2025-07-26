@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,19 +40,19 @@ const Home = () => {
             <ServiceCard
               title={t('home.movingService')}
               description={t('home.movingDescription')}
-              icon={<Truck className="h-6 w-6" />}
+              icon={Truck}
               link="/moving"
             />
             <ServiceCard
               title={t('home.disposalService')}
               description={t('home.disposalDescription')}
-              icon={<Trash2 className="h-6 w-6" />}
+              icon={Trash2}
               link="/disposal"
             />
             <ServiceCard
               title={t('home.transportService')}
               description={t('home.transportDescription')}
-              icon={<Package className="h-6 w-6" />}
+              icon={Package}
               link="/transport"
             />
           </div>
@@ -64,16 +65,20 @@ const Home = () => {
           <h2 className="text-3xl font-semibold text-center mb-8">{t('home.recentBookingsTitle')}</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RecentBookingCard
-              serviceType="Moving"
-              date="2024-03-15"
-              status="Confirmed"
-              details="Apartment moving from downtown to suburbs"
+              booking={{
+                id: "1",
+                service_type: "moving",
+                status: "confirmed",
+                created_at: "2024-03-15T10:00:00Z"
+              }}
             />
             <RecentBookingCard
-              serviceType="Disposal"
-              date="2024-03-20"
-              status="Pending"
-              details="Old furniture disposal after renovation"
+              booking={{
+                id: "2", 
+                service_type: "disposal",
+                status: "pending",
+                created_at: "2024-03-20T14:30:00Z"
+              }}
             />
           </div>
         </div>
