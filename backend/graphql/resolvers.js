@@ -206,6 +206,8 @@ export const resolvers = {
     },
     createDisposalBooking: async (_, { serviceType, items, dateTime, dateTimeFlexible, pickupAddress, contact, company }, { user }) => {
       if (!user) throw new Error('Not authenticated');
+
+      // check if the company is already in the database
       
       const booking = new DisposalBooking({
         userId: user.userId,
