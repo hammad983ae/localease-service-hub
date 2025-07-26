@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -6,9 +7,8 @@ import { useBookingSubmission } from '@/hooks/useBookingSubmission';
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 import RoomSelection from './RoomSelection';
 import ItemSelection from './ItemSelection';
-import DateTimeSelection from './DateTimeSelection';
+import DateTimeContactForm from './DateTimeContactForm';
 import EnhancedAddressSelection from './EnhancedAddressSelection';
-import ContactForm from './ContactForm';
 import BookingSummary from './BookingSummary';
 import CompanySelection from './CompanySelection';
 
@@ -46,7 +46,7 @@ interface MovingData {
   company?: Company;
 }
 
-type Step = 'company' | 'rooms' | 'items' | 'datetime' | 'addresses' | 'contact' | 'summary';
+type Step = 'company' | 'rooms' | 'items' | 'datetime-contact' | 'addresses' | 'summary';
 
 const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const { t } = useLanguage();
@@ -69,8 +69,8 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   }, [type, saveServiceSelection]);
 
   const steps: Step[] = type === 'supplier' 
-    ? ['company', 'rooms', 'items', 'datetime', 'addresses', 'contact', 'summary']
-    : ['rooms', 'items', 'datetime', 'addresses', 'contact', 'summary'];
+    ? ['company', 'rooms', 'items', 'datetime-contact', 'addresses', 'summary']
+    : ['rooms', 'items', 'datetime-contact', 'addresses', 'summary'];
   
   const currentStepIndex = steps.indexOf(currentStep);
 
@@ -113,12 +113,17 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
         return <RoomSelection data={movingData.rooms} onUpdate={(rooms) => updateData({ rooms })} />;
       case 'items':
         return <ItemSelection data={movingData.items} rooms={movingData.rooms} onUpdate={(items) => updateData({ items })} />;
-      case 'datetime':
-        return <DateTimeSelection data={movingData.dateTime} onUpdate={(dateTime) => updateData({ dateTime })} />;
+      case 'datetime-contact':
+        return (
+          <DateTimeContactForm
+            dateTimeData={movingData.dateTime}
+            contactData={movingData.contact}
+            onDateTimeUpdate={(dateTime) => updateData({ dateTime })}
+            onContactUpdate={(contact) => updateData({ contact })}
+          />
+        );
       case 'addresses':
         return <EnhancedAddressSelection data={movingData.addresses} onUpdate={(addresses) => updateData({ addresses })} />;
-      case 'contact':
-        return <ContactForm data={movingData.contact} onUpdate={(contact) => updateData({ contact })} />;
       case 'summary':
         return <BookingSummary data={movingData} />;
       default:
@@ -131,9 +136,8 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'company': return 'Choose Company';
       case 'rooms': return t('moving.selectRooms');
       case 'items': return t('moving.addItems');
-      case 'datetime': return t('moving.dateTime');
+      case 'datetime-contact': return 'Schedule & Contact Details';
       case 'addresses': return t('moving.addresses');
-      case 'contact': return t('moving.contact');
       case 'summary': return 'Review Booking';
       default: return '';
     }
@@ -147,12 +151,10 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
         return movingData.rooms.length > 0;
       case 'items':
         return Object.keys(movingData.items).length > 0;
-      case 'datetime':
-        return !!movingData.dateTime;
+      case 'datetime-contact':
+        return !!movingData.dateTime && movingData.contact.name && movingData.contact.email && movingData.contact.phone;
       case 'addresses':
         return movingData.addresses.from && movingData.addresses.to;
-      case 'contact':
-        return movingData.contact.name && movingData.contact.email && movingData.contact.phone;
       default:
         return true;
     }
@@ -160,7 +162,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="max-w-md mx-auto text-center space-y-6">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle className="h-8 w-8 text-green-600" />
@@ -171,7 +173,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
               Your moving request has been received. We'll contact you soon to confirm the details.
             </p>
           </div>
-          <Button onClick={onBack} variant="outline">
+          <Button onClick={onBack} variant="outline" className="backdrop-blur-sm">
             Back to Home
           </Button>
         </div>
@@ -180,10 +182,10 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" onClick={handleBack} className="backdrop-blur-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="text-center">
@@ -214,12 +216,14 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
             variant="outline"
             onClick={handleBack}
             disabled={currentStepIndex === 0}
+            className="backdrop-blur-sm"
           >
             {t('common.back')}
           </Button>
           <Button
             onClick={currentStep === 'summary' ? handleSubmit : handleNext}
             disabled={isSubmitting || !canProceed()}
+            className="backdrop-blur-sm"
           >
             {currentStep === 'summary' ? 
               (isSubmitting ? 'Submitting...' : 'Submit Booking') : 
