@@ -16,11 +16,14 @@ import Transport from "./pages/Transport";
 import Bookings from "./pages/Bookings";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
+import Chats from "./pages/Chats";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import NotificationSound from './components/NotificationSound';
 
 const queryClient = new QueryClient();
 
@@ -50,25 +53,29 @@ const App = () => {
           <Toaster />
           <Sonner />
           <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
-                <Route path="/company-onboarding" element={<ProtectedCompanyRoute><CompanyOnboarding /></ProtectedCompanyRoute>} />
-                <Route path="/company-dashboard" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
-                <Route path="/" element={<Layout />}>
-                  <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                  <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
-                  <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
-                  <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
-                  <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-                  <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <NotificationProvider>
+              <NotificationSound />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
+                  <Route path="/company-onboarding" element={<ProtectedCompanyRoute><CompanyOnboarding /></ProtectedCompanyRoute>} />
+                  <Route path="/company-dashboard" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
+                  <Route path="/" element={<Layout />}>
+                    <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                    <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
+                    <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
+                    <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
+                    <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+                    <Route path="chats" element={<ProtectedRoute><Chats /></ProtectedRoute>} />
+                    <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>
       </LanguageProvider>

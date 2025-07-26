@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car } from 'lucide-react';
+import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car, MessageCircle } from 'lucide-react';
 import { useQuery, gql } from '@apollo/client';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 const MY_BOOKINGS_QUERY = gql`
   query MyBookings {
@@ -52,6 +53,7 @@ const MY_TRANSPORT_BOOKINGS_QUERY = gql`
 
 const Bookings: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
@@ -164,6 +166,10 @@ const Bookings: React.FC = () => {
       default:
         return { from: 'N/A', to: 'N/A' };
     }
+  };
+
+  const handleChatClick = () => {
+    navigate('/chats');
   };
 
   const filteredBookings = allBookings.filter((booking) => {
@@ -293,6 +299,21 @@ const Bookings: React.FC = () => {
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Time:</span>
                       <span className="font-medium">Flexible</span>
+                    </div>
+                  )}
+                  
+                  {/* Chat button for approved bookings */}
+                  {booking.status === 'approved' && (
+                    <div className="flex justify-end pt-3 border-t">
+                      <Button
+                        onClick={handleChatClick}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Chat with Company
+                      </Button>
                     </div>
                   )}
                 </CardContent>

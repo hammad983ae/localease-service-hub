@@ -1,17 +1,20 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { GraphQLScalarType, Kind } from 'graphql';
-import GraphQLJSON from 'graphql-type-json';
-import { User } from '../models/User.js';
-import { MovingBooking } from '../models/MovingBooking.js';
-import { Company } from '../models/Company.js';
-import { UserProfile } from '../models/UserProfile.js';
-import { DisposalBooking } from '../models/DisposalBooking.js';
-import { TransportBooking } from '../models/TransportBooking.js';
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { GraphQLScalarType, Kind } = require('graphql');
+const GraphQLJSON = require('graphql-type-json');
+const { User } = require('../models/User.js');
+const { MovingBooking } = require('../models/MovingBooking.js');
+const { Company } = require('../models/Company.js');
+const { UserProfile } = require('../models/UserProfile.js');
+const { DisposalBooking } = require('../models/DisposalBooking.js');
+const { TransportBooking } = require('../models/TransportBooking.js');
+const { ChatRoom } = require('../models/ChatRoom.js');
+const { Message } = require('../models/Message.js');
+const { pubsub } = require('../pubsub.js');
 
 const JWT_SECRET = 'your_jwt_secret'; // Should match your main config
 
-export const resolvers = {
+const resolvers = {
   Date: new GraphQLScalarType({
     name: 'Date',
     description: 'Date custom scalar type',
@@ -143,6 +146,62 @@ export const resolvers = {
       if (!company) throw new Error('Company profile not found');
       
       return await TransportBooking.find({ 'company.id': company._id.toString() }).sort({ createdAt: -1 });
+    },
+    myChatRooms: async (_, __, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      return await ChatRoom.find({ userId: user.userId, isActive: true }).sort({ updatedAt: -1 });
+    },
+    companyChatRooms: async (_, __, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      const dbUser = await User.findById(user.userId);
+      if (!dbUser || dbUser.role !== 'company') throw new Error('Not authorized');
+      
+      const company = await Company.findOne({ userId: user.userId });
+      if (!company) throw new Error('Company profile not found');
+      
+      return await ChatRoom.find({ companyId: company._id, isActive: true }).sort({ updatedAt: -1 });
+    },
+    chatRoom: async (_, { id }, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const chatRoom = await ChatRoom.findById(id);
+      if (!chatRoom) throw new Error('Chat room not found');
+      
+      // Check if user has access to this chat room
+      const dbUser = await User.findById(user.userId);
+      if (dbUser.role === 'company') {
+        const company = await Company.findOne({ userId: user.userId });
+        if (!company || chatRoom.companyId.toString() !== company._id.toString()) {
+          throw new Error('Not authorized');
+        }
+      } else {
+        if (chatRoom.userId.toString() !== user.userId) {
+          throw new Error('Not authorized');
+        }
+      }
+      
+      return chatRoom;
+    },
+    chatMessages: async (_, { chatRoomId }, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const chatRoom = await ChatRoom.findById(chatRoomId);
+      if (!chatRoom) throw new Error('Chat room not found');
+      
+      // Check if user has access to this chat room
+      const dbUser = await User.findById(user.userId);
+      if (dbUser.role === 'company') {
+        const company = await Company.findOne({ userId: user.userId });
+        if (!company || chatRoom.companyId.toString() !== company._id.toString()) {
+          throw new Error('Not authorized');
+        }
+      } else {
+        if (chatRoom.userId.toString() !== user.userId) {
+          throw new Error('Not authorized');
+        }
+      }
+      
+      return await Message.find({ chatRoomId }).sort({ createdAt: 1 });
     }
   },
   Mutation: {
@@ -303,6 +362,29 @@ export const resolvers = {
         { status: 'approved' }, 
         { new: true }
       );
+      
+      // Create chat room for approved booking
+      try {
+        const existingChatRoom = await ChatRoom.findOne({ 
+          bookingId: id, 
+          isActive: true 
+        });
+        
+        if (!existingChatRoom) {
+          const chatRoom = new ChatRoom({
+            bookingId: id,
+            bookingType: 'moving',
+            userId: updatedBooking.userId,
+            companyId: companyProfile._id,
+            isActive: true
+          });
+          await chatRoom.save();
+        }
+      } catch (error) {
+        console.error('Error creating chat room:', error);
+        // Don't fail the approval if chat room creation fails
+      }
+      
       return updatedBooking;
     },
     companyRejectBooking: async (_, { id }, { user }) => {
@@ -351,6 +433,29 @@ export const resolvers = {
         { status: 'approved' }, 
         { new: true }
       );
+      
+      // Create chat room for approved booking
+      try {
+        const existingChatRoom = await ChatRoom.findOne({ 
+          bookingId: id, 
+          isActive: true 
+        });
+        
+        if (!existingChatRoom) {
+          const chatRoom = new ChatRoom({
+            bookingId: id,
+            bookingType: 'disposal',
+            userId: updatedBooking.userId,
+            companyId: companyProfile._id,
+            isActive: true
+          });
+          await chatRoom.save();
+        }
+      } catch (error) {
+        console.error('Error creating chat room:', error);
+        // Don't fail the approval if chat room creation fails
+      }
+      
       return updatedBooking;
     },
     companyRejectDisposalBooking: async (_, { id }, { user }) => {
@@ -399,6 +504,29 @@ export const resolvers = {
         { status: 'approved' }, 
         { new: true }
       );
+      
+      // Create chat room for approved booking
+      try {
+        const existingChatRoom = await ChatRoom.findOne({ 
+          bookingId: id, 
+          isActive: true 
+        });
+        
+        if (!existingChatRoom) {
+          const chatRoom = new ChatRoom({
+            bookingId: id,
+            bookingType: 'transport',
+            userId: updatedBooking.userId,
+            companyId: companyProfile._id,
+            isActive: true
+          });
+          await chatRoom.save();
+        }
+      } catch (error) {
+        console.error('Error creating chat room:', error);
+        // Don't fail the approval if chat room creation fails
+      }
+      
       return updatedBooking;
     },
     companyRejectTransportBooking: async (_, { id }, { user }) => {
@@ -442,6 +570,181 @@ export const resolvers = {
       });
       await company.save();
       return company;
+    },
+    createChatRoom: async (_, { bookingId, bookingType }, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      // Get booking details based on type
+      let booking;
+      let companyId;
+      
+      if (bookingType === 'moving') {
+        booking = await MovingBooking.findById(bookingId);
+      } else if (bookingType === 'disposal') {
+        booking = await DisposalBooking.findById(bookingId);
+      } else if (bookingType === 'transport') {
+        booking = await TransportBooking.findById(bookingId);
+      }
+      
+      if (!booking) throw new Error('Booking not found');
+      if (booking.status !== 'approved') throw new Error('Booking must be approved to create chat room');
+      
+      // Get company ID from booking
+      if (booking.company && booking.company.id) {
+        companyId = booking.company.id;
+      } else {
+        throw new Error('Company information not found in booking');
+      }
+      
+      // Check if chat room already exists
+      const existingChatRoom = await ChatRoom.findOne({ 
+        bookingId, 
+        isActive: true 
+      });
+      
+      if (existingChatRoom) {
+        return existingChatRoom;
+      }
+      
+      // Create new chat room
+      const chatRoom = new ChatRoom({
+        bookingId,
+        bookingType,
+        userId: booking.userId,
+        companyId,
+        isActive: true
+      });
+      
+      await chatRoom.save();
+      return chatRoom;
+    },
+    sendMessage: async (_, { chatRoomId, content, messageType = 'text' }, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const chatRoom = await ChatRoom.findById(chatRoomId);
+      if (!chatRoom) throw new Error('Chat room not found');
+      
+      // Check if user has access to this chat room
+      const dbUser = await User.findById(user.userId);
+      let senderType;
+      
+      if (dbUser.role === 'company') {
+        const company = await Company.findOne({ userId: user.userId });
+        if (!company || chatRoom.companyId.toString() !== company._id.toString()) {
+          throw new Error('Not authorized');
+        }
+        senderType = 'company';
+      } else {
+        if (chatRoom.userId.toString() !== user.userId) {
+          throw new Error('Not authorized');
+        }
+        senderType = 'user';
+      }
+      
+      const message = new Message({
+        chatRoomId,
+        senderId: user.userId,
+        senderType,
+        content,
+        messageType,
+        isRead: false
+      });
+      
+      await message.save();
+      
+      // Update chat room's updatedAt timestamp
+      await ChatRoom.findByIdAndUpdate(chatRoomId, { updatedAt: new Date() });
+      
+      // Publish message to subscribers
+      pubsub.publishMessage(chatRoomId, message);
+      
+      return message;
+    },
+    markMessageAsRead: async (_, { messageId }, { user }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const message = await Message.findById(messageId);
+      if (!message) throw new Error('Message not found');
+      
+      // Check if user has access to this message
+      const chatRoom = await ChatRoom.findById(message.chatRoomId);
+      const dbUser = await User.findById(user.userId);
+      
+      if (dbUser.role === 'company') {
+        const company = await Company.findOne({ userId: user.userId });
+        if (!company || chatRoom.companyId.toString() !== company._id.toString()) {
+          throw new Error('Not authorized');
+        }
+      } else {
+        if (chatRoom.userId.toString() !== user.userId) {
+          throw new Error('Not authorized');
+        }
+      }
+      
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { isRead: true },
+        { new: true }
+      );
+      
+      return updatedMessage;
+    }
+  },
+  Subscription: {
+    messageAdded: {
+      subscribe: async (_, { chatRoomId }, { user }) => {
+        if (!user) throw new Error('Not authenticated');
+        
+        // Check if user has access to this chat room
+        const chatRoom = await ChatRoom.findById(chatRoomId);
+        if (!chatRoom) throw new Error('Chat room not found');
+        
+        const dbUser = await User.findById(user.userId);
+        if (dbUser.role === 'company') {
+          const company = await Company.findOne({ userId: user.userId });
+          if (!company || chatRoom.companyId.toString() !== company._id.toString()) {
+            throw new Error('Not authorized');
+          }
+        } else {
+          if (chatRoom.userId.toString() !== user.userId) {
+            throw new Error('Not authorized');
+          }
+        }
+        
+        return {
+          [Symbol.asyncIterator]: () => {
+            const iterator = {
+              next: async () => {
+                return new Promise((resolve) => {
+                  const unsubscribe = pubsub.subscribeToChat(chatRoomId, (message) => {
+                    unsubscribe();
+                    resolve({ value: { messageAdded: message }, done: false });
+                  });
+                });
+              }
+            };
+            return iterator;
+          }
+        };
+      }
+    },
+    messageRead: {
+      subscribe: (_, { messageId }, { user }) => {
+        if (!user) throw new Error('Not authenticated');
+        
+        return {
+          [Symbol.asyncIterator]: () => {
+            const iterator = {
+              next: async () => {
+                return { done: true };
+              }
+            };
+            return iterator;
+          }
+        };
+      }
     }
   }
-}; 
+};
+
+module.exports = { resolvers }; 

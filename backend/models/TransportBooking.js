@@ -1,18 +1,29 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
+
+const ItemDimensionsSchema = new mongoose.Schema({
+  length: Number,
+  width: Number,
+  height: Number,
+  weight: Number
+}, { _id: false });
 
 const TransportItemSchema = new mongoose.Schema({
-  type: { type: String, required: true }, // small-delivery, furniture, same-day, scheduled
+  type: { type: String, required: true },
   description: String,
-  dimensions: {
-    length: Number,
-    width: Number,
-    height: Number,
-    weight: Number
-  },
-  quantity: Number,
+  dimensions: ItemDimensionsSchema,
+  quantity: { type: Number, default: 1 },
   specialInstructions: String,
-  fragile: Boolean,
-  insuranceRequired: Boolean
+  fragile: { type: Boolean, default: false },
+  insuranceRequired: { type: Boolean, default: false }
+}, { _id: false });
+
+const LocationSchema = new mongoose.Schema({
+  street: String,
+  city: String,
+  state: String,
+  zipCode: String,
+  fullAddress: String,
+  instructions: String
 }, { _id: false });
 
 const CompanySchema = new mongoose.Schema({
@@ -31,26 +42,12 @@ const CompanySchema = new mongoose.Schema({
 
 const TransportBookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  serviceType: { type: String, required: true }, // small-delivery, furniture, same-day, scheduled
+  serviceType: { type: String, required: true },
   items: [TransportItemSchema],
-  dateTime: Date, // for specific date/time
-  dateTimeFlexible: String, // for flexible options (stringified object)
-  pickupLocation: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    fullAddress: String,
-    instructions: String
-  },
-  dropoffLocation: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    fullAddress: String,
-    instructions: String
-  },
+  dateTime: Date,
+  dateTimeFlexible: String,
+  pickupLocation: LocationSchema,
+  dropoffLocation: LocationSchema,
   contact: {
     name: String,
     email: String,
@@ -59,9 +56,9 @@ const TransportBookingSchema = new mongoose.Schema({
   },
   company: CompanySchema,
   status: { type: String, default: 'pending' },
-  estimatedCost: Number,
-  estimatedTime: String, // e.g., "1-2 hours", "2-4 hours"
+  estimatedCost: { type: Number, default: 0 },
+  estimatedTime: String,
   createdAt: { type: Date, default: Date.now }
 });
 
-export const TransportBooking = mongoose.model('TransportBooking', TransportBookingSchema); 
+module.exports = { TransportBooking: mongoose.model('TransportBooking', TransportBookingSchema) }; 

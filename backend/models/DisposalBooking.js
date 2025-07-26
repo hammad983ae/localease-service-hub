@@ -1,11 +1,19 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const DisposalItemSchema = new mongoose.Schema({
-  type: { type: String, required: true }, // household, construction, electronic, yard
+  type: { type: String, required: true },
   description: String,
-  quantity: Number,
-  photos: [String], // URLs to uploaded photos
+  quantity: { type: Number, default: 1 },
+  photos: [String],
   specialInstructions: String
+}, { _id: false });
+
+const PickupAddressSchema = new mongoose.Schema({
+  street: String,
+  city: String,
+  state: String,
+  zipCode: String,
+  fullAddress: String
 }, { _id: false });
 
 const CompanySchema = new mongoose.Schema({
@@ -24,17 +32,11 @@ const CompanySchema = new mongoose.Schema({
 
 const DisposalBookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  serviceType: { type: String, required: true }, // household, construction, electronic, yard
+  serviceType: { type: String, required: true },
   items: [DisposalItemSchema],
-  dateTime: Date, // for specific date/time
-  dateTimeFlexible: String, // for flexible options (stringified object)
-  pickupAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    fullAddress: String
-  },
+  dateTime: Date,
+  dateTimeFlexible: String,
+  pickupAddress: PickupAddressSchema,
   contact: {
     name: String,
     email: String,
@@ -43,8 +45,8 @@ const DisposalBookingSchema = new mongoose.Schema({
   },
   company: CompanySchema,
   status: { type: String, default: 'pending' },
-  estimatedCost: Number,
+  estimatedCost: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 
-export const DisposalBooking = mongoose.model('DisposalBooking', DisposalBookingSchema); 
+module.exports = { DisposalBooking: mongoose.model('DisposalBooking', DisposalBookingSchema) }; 

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const RoomSchema = new mongoose.Schema({
   floor: String,
@@ -41,4 +41,4 @@ const MovingBookingSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export const MovingBooking = mongoose.model('MovingBooking', MovingBookingSchema); 
+module.exports = { MovingBooking: mongoose.model('MovingBooking', MovingBookingSchema) }; 

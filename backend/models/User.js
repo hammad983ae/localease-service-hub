@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
   full_name: String,
   phone: String,
   address: String,
-  role: { type: String, enum: ['user', 'company', 'admin'], default: 'user' },
+  role: { type: String, default: 'user' },
+  createdAt: { type: Date, default: Date.now }
 });
 
-export const User = mongoose.model('User', userSchema); 
+module.exports = { User: mongoose.model('User', userSchema) }; 

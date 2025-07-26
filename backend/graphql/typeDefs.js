@@ -1,6 +1,6 @@
-import { gql } from 'apollo-server-express';
+const { gql } = require('apollo-server-express');
 
-export const typeDefs = gql`
+const typeDefs = gql`
   scalar Date
   scalar JSON
 
@@ -147,6 +147,28 @@ export const typeDefs = gql`
     createdAt: Date
   }
 
+  type ChatRoom {
+    id: ID!
+    bookingId: ID!
+    bookingType: String!
+    userId: ID!
+    companyId: ID!
+    isActive: Boolean!
+    createdAt: Date
+    updatedAt: Date
+  }
+
+  type Message {
+    id: ID!
+    chatRoomId: ID!
+    senderId: ID!
+    senderType: String!
+    content: String!
+    messageType: String!
+    isRead: Boolean!
+    createdAt: Date
+  }
+
   type Query {
     me: User
     myProfile: UserProfile
@@ -169,6 +191,10 @@ export const typeDefs = gql`
     companyBookings: [MovingBooking]
     companyDisposalBookings: [DisposalBooking]
     companyTransportBookings: [TransportBooking]
+    myChatRooms: [ChatRoom]
+    companyChatRooms: [ChatRoom]
+    chatRoom(id: ID!): ChatRoom
+    chatMessages(chatRoomId: ID!): [Message]
   }
 
   type Mutation {
@@ -217,6 +243,14 @@ export const typeDefs = gql`
     companyApproveTransportBooking(id: ID!): TransportBooking
     companyRejectTransportBooking(id: ID!): TransportBooking
     createCompanyProfile(name: String!, email: String!, phone: String, address: String, description: String, services: [String!], priceRange: String, companyType: String): Company
+    createChatRoom(bookingId: ID!, bookingType: String!): ChatRoom
+    sendMessage(chatRoomId: ID!, content: String!, messageType: String): Message
+    markMessageAsRead(messageId: ID!): Message
+  }
+
+  type Subscription {
+    messageAdded(chatRoomId: ID!): Message
+    messageRead(messageId: ID!): Message
   }
 
   input RoomInput {
@@ -249,7 +283,6 @@ export const typeDefs = gql`
     image_url: String
     contact_phone: String
     contact_email: String
-    companyType: String
   }
 
   input DisposalItemInput {
@@ -293,4 +326,6 @@ export const typeDefs = gql`
     fullAddress: String
     instructions: String
   }
-`; 
+`;
+
+module.exports = { typeDefs }; 

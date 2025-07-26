@@ -16,10 +16,12 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  MessageCircle
 } from 'lucide-react';
 import { gql, useQuery } from '@apollo/client';
 import { useMutation } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
 
 interface ServiceRequest {
   id: string;
@@ -75,6 +77,7 @@ const CompanyDashboard: React.FC = () => {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   });
+  const navigate = useNavigate();
   const { data, loading, error, refetch } = useQuery(COMPANY_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
   const requests = data?.companyBookings || [];
   const [approveBooking] = useMutation(COMPANY_APPROVE_BOOKING_MUTATION);
@@ -93,6 +96,10 @@ const CompanyDashboard: React.FC = () => {
       console.error('Error updating booking status:', error);
       // You could add a toast notification here
     }
+  };
+
+  const handleChatClick = () => {
+    navigate('/chats');
   };
 
   const getStatusIcon = (status: string) => {
@@ -272,6 +279,20 @@ const CompanyDashboard: React.FC = () => {
                                 className="border-red-200 text-red-600 hover:bg-red-50"
                               >
                                 Reject
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {request.status === 'approved' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleChatClick}
+                                className="flex items-center gap-2"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                                Chat with Customer
                               </Button>
                             </div>
                           )}

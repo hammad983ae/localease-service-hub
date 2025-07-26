@@ -1,15 +1,17 @@
-import jwt from 'jsonwebtoken';
+const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = 'your_jwt_secret'; // Should match your main config
+const JWT_SECRET = 'your_jwt_secret';
 
-export const getUserFromToken = (req) => {
-  const auth = req.headers.authorization;
-  if (auth && auth.startsWith('Bearer ')) {
-    try {
-      return jwt.verify(auth.split(' ')[1], JWT_SECRET);
-    } catch {
-      return null;
-    }
+const getUserFromToken = (req) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return null;
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return { userId: decoded.userId };
+  } catch (error) {
+    return null;
   }
-  return null;
-}; 
+};
+
+module.exports = { getUserFromToken }; 

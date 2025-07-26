@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const companySchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -13,4 +13,4 @@ const companySchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export const Company = mongoose.model('Company', companySchema); 
+module.exports = { Company: mongoose.model('Company', companySchema) }; 
