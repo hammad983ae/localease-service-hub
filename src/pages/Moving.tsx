@@ -8,6 +8,7 @@ import { ArrowLeft, Calculator, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MovingFlow from '@/components/moving/MovingFlow';
 import { useQuery } from '@tanstack/react-query';
+// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 
 const Moving: React.FC = () => {
@@ -52,11 +53,8 @@ const Moving: React.FC = () => {
   if (selectedType) {
     return (
       <MovingFlow
-        onClose={() => setSelectedType(null)}
-        onBooked={() => {
-          // Handle booking completion
-          setSelectedType(null);
-        }}
+        type={selectedType}
+        onBack={() => setSelectedType(null)}
       />
     );
   }
