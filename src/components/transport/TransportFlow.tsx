@@ -157,7 +157,7 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 'company':
-        return <CompanySelection selectedCompany={transportData.company || null} onCompanySelect={handleCompanySelect} />;
+        return <CompanySelection selectedCompany={transportData.company || null} onCompanySelect={handleCompanySelect} service={'Transport'} />;
       case 'service':
         return (
           <Card>

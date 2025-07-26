@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,29 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { gql, useMutation } from '@apollo/client';
 
 const CREATE_COMPANY_PROFILE = gql`
-  mutation CreateCompanyProfile($name: String!, $email: String!, $phone: String, $address: String, $description: String, $services: [String!], $priceRange: String) {
-    createCompanyProfile(name: $name, email: $email, phone: $phone, address: $address, description: $description, services: $services, priceRange: $priceRange) {
+  mutation CreateCompanyProfile(
+    $name: String!,
+    $email: String!,
+    $phone: String,
+    $address: String,
+    $description: String,
+    $services: [String!],
+    $priceRange: String,
+    $companyType: String
+  ) {
+    createCompanyProfile(
+      name: $name,
+      email: $email,
+      phone: $phone,
+      address: $address,
+      description: $description,
+      services: $services,
+      priceRange: $priceRange,
+      companyType: $companyType
+    ) {
       id
       name
+      companyType
       email
       phone
       address

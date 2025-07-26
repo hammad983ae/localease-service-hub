@@ -108,7 +108,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 'company':
-        return <CompanySelection selectedCompany={movingData.company || null} onCompanySelect={handleCompanySelect} />;
+        return <CompanySelection selectedCompany={movingData.company || null} onCompanySelect={handleCompanySelect} service={'Moving'} />;
       case 'rooms':
         return <RoomSelection data={movingData.rooms} onUpdate={(rooms) => updateData({ rooms })} />;
       case 'items':

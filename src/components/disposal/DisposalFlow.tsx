@@ -103,7 +103,7 @@ const DisposalFlow: React.FC<DisposalFlowProps> = ({ type, onBack }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 'company':
-        return <CompanySelection selectedCompany={disposalData.company || null} onCompanySelect={handleCompanySelect} />;
+        return <CompanySelection selectedCompany={disposalData.company || null} onCompanySelect={handleCompanySelect} service={'Disposal'} />;
       case 'items':
         return <DisposalItemSelection data={disposalData.items} serviceType={disposalData.serviceType} onUpdate={(items, serviceType) => updateData({ items, serviceType })} />;
       case 'datetime-contact':

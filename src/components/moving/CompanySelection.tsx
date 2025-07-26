@@ -21,11 +21,13 @@ interface Company {
   image_url?: string;
   contact_phone: string;
   contact_email: string;
+  companyType: string;
 }
 
 interface CompanySelectionProps {
   onCompanySelect: (company: Company) => void;
   selectedCompany: Company | null;
+  service?: string;
 }
 
 const ALL_COMPANIES_QUERY = gql`
@@ -39,15 +41,45 @@ const ALL_COMPANIES_QUERY = gql`
       email
       phone
       address
+      companyType
     }
   }
 `;
 
-const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, selectedCompany }) => {
+const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, selectedCompany, service }) => {
   const { t } = useLanguage();
 
   const { data, loading } = useQuery(ALL_COMPANIES_QUERY);
-  const companies = data?.allCompanies || [];
+  let companies = data?.allCompanies || [];
+  if (service) {
+    companies = companies.filter((company: any) => company.companyType === service);
+  }
+
+  const getServiceTitle = () => {
+    switch (service) {
+      case 'Moving':
+        return 'Choose Your Moving Company';
+      case 'Disposal':
+        return 'Choose Your Disposal Company';
+      case 'Transport':
+        return 'Choose Your Transport Company';
+      default:
+        return 'Choose Your Company';
+    }
+  };
+
+  const getServiceSubtitle = () => {
+    switch (service) {
+      case 'Moving':
+        return 'Select a trusted moving company for your relocation';
+      case 'Disposal':
+        return 'Select a trusted disposal company for your waste removal';
+      case 'Transport':
+        return 'Select a trusted transport company for your delivery';
+      default:
+        return 'Select a trusted company for your service';
+    }
+  };
 
   const getPriceRangeColor = (priceRange: string) => {
     switch (priceRange) {
@@ -79,7 +111,7 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
       <div className="max-w-4xl mx-auto">
         <div className="text-center space-y-4 mb-8">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Choose Your Moving Company
+            {getServiceTitle()}
           </h2>
           <p className="text-muted-foreground">Loading available companies...</p>
         </div>
@@ -100,9 +132,9 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
     <div className="max-w-4xl mx-auto">
       <div className="text-center space-y-4 mb-8">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Choose Your Moving Company
+          {getServiceTitle()}
         </h2>
-        <p className="text-muted-foreground">Select a trusted moving company for your relocation</p>
+        <p className="text-muted-foreground">{getServiceSubtitle()}</p>
       </div>
 
       <div className="grid gap-6">
@@ -124,6 +156,11 @@ const CompanySelection: React.FC<CompanySelectionProps> = ({ onCompanySelect, se
                     <CardTitle className="text-lg font-semibold mb-1">{company.name}</CardTitle>
                     <div className="text-sm text-muted-foreground mb-2">{company.description}</div>
                     <div className="flex flex-wrap gap-2 mb-2">
+                      {company.companyType && (
+                        <Badge key="companyType" variant="outline" className="text-blue-600 border-blue-200">
+                          {company.companyType}
+                        </Badge>
+                      )}
                       {company.services?.map((service: string) => (
                         <Badge key={service} variant="secondary">{service}</Badge>
                       ))}
