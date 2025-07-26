@@ -120,7 +120,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ userType }) => {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 left-6 z-50">
         <Button
           onClick={() => setIsOpen(true)}
           className="h-16 w-16 rounded-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110"
@@ -140,7 +140,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ userType }) => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 left-6 z-50">
       <Card className={`w-96 transition-all duration-300 shadow-2xl border-0 ${
         isMinimized ? 'h-16' : 'h-[500px]'
       }`}>

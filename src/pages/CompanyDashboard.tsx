@@ -105,10 +105,6 @@ const CompanyDashboard: React.FC = () => {
     }
   };
 
-  const handleChatClick = () => {
-    navigate('/chats');
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -171,10 +167,6 @@ const CompanyDashboard: React.FC = () => {
               <Button variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
                 Export Report
-              </Button>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-blue-600">
-                <MessageCircle className="h-4 w-4" />
-                Customer Chat
               </Button>
             </div>
           </div>
@@ -401,7 +393,6 @@ const CompanyDashboard: React.FC = () => {
                               
                               {request.status === 'accepted' && (
                                 <Button
-                                  onClick={handleChatClick}
                                   className="gap-2 bg-gradient-to-r from-primary to-blue-600"
                                 >
                                   <MessageCircle className="h-4 w-4" />

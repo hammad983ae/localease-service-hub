@@ -168,10 +168,6 @@ const Bookings: React.FC = () => {
     }
   };
 
-  const handleChatClick = () => {
-    navigate('/chats');
-  };
-
   const filteredBookings = allBookings.filter((booking) => {
     const matchesSearch = booking.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
@@ -302,20 +298,6 @@ const Bookings: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Chat button for approved bookings */}
-                  {booking.status === 'approved' && (
-                    <div className="flex justify-end pt-3 border-t">
-                      <Button
-                        onClick={handleChatClick}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        Chat with Company
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             );

@@ -24,6 +24,7 @@ import CompanyDashboard from "./pages/CompanyDashboard";
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import NotificationSound from './components/NotificationSound';
+import FloatingChatWidget from './components/FloatingChatWidget';
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => {
             <NotificationProvider>
               <NotificationSound />
               <BrowserRouter>
+                <FloatingChatWidget />
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   <Route path="/auth" element={<Auth />} />
@@ -68,7 +70,6 @@ const App = () => {
                     <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
                     <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
                     <Route path="bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-                    <Route path="chats" element={<ProtectedRoute><Chats /></ProtectedRoute>} />
                     <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   </Route>

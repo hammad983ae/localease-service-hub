@@ -14,7 +14,6 @@ const BottomNavigation: React.FC = () => {
   const navItems = [
     { path: '/home', icon: Home, label: t('nav.home') }, // Fixed: changed from '/' to '/home'
     { path: '/bookings', icon: Calendar, label: t('nav.bookings') },
-    { path: '/chats', icon: MessageCircle, label: 'Chats' },
     { path: '/profile', icon: User, label: t('nav.profile') },
     { path: '/support', icon: HelpCircle, label: t('nav.support') },
   ];

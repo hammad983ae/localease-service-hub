@@ -3,7 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, User, Building2, Calendar, MapPin } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { 
+  MessageCircle, 
+  User, 
+  Building2, 
+  Calendar, 
+  MapPin,
+  Clock,
+  ArrowLeft,
+  Search,
+  Filter,
+  MoreVertical
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { gql, useQuery } from '@apollo/client';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -39,6 +51,41 @@ const GET_COMPANY_CHAT_ROOMS = gql`
   }
 `;
 
+const GET_BOOKING_DETAILS = gql`
+  query GetBookingDetails($bookingId: ID!, $bookingType: String!) {
+    booking(id: $bookingId) @include(if: $isMoving) {
+      id
+      status
+      dateTime
+      dateTimeFlexible
+      addresses { from to }
+      contact { name email phone }
+      company { name email phone }
+    }
+    disposalBooking(id: $bookingId) @include(if: $isDisposal) {
+      id
+      status
+      serviceType
+      dateTime
+      dateTimeFlexible
+      pickupAddress { fullAddress }
+      contact { name email phone }
+      company { name email phone }
+    }
+    transportBooking(id: $bookingId) @include(if: $isTransport) {
+      id
+      status
+      serviceType
+      dateTime
+      dateTimeFlexible
+      pickupLocation { fullAddress }
+      dropoffLocation { fullAddress }
+      contact { name email phone }
+      company { name email phone }
+    }
+  }
+`;
+
 interface ChatRoom {
   id: string;
   bookingId: string;
@@ -52,9 +99,10 @@ interface ChatRoom {
 
 const ChatList: React.FC = () => {
   const { user } = useAuth();
-  const { markAsRead } = useNotifications();
+  const { markAsRead, unreadChats } = useNotifications();
   const [selectedChatRoom, setSelectedChatRoom] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isCompany = user?.role === 'company';
   const { data, loading, error } = useQuery(
@@ -76,17 +124,50 @@ const ChatList: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Today';
+    if (diffDays === 2) return 'Yesterday';
+    if (diffDays <= 7) return `${diffDays - 1} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   const getBookingTypeLabel = (type: string) => {
     switch (type) {
-      case 'moving': return 'Moving';
-      case 'disposal': return 'Disposal';
-      case 'transport': return 'Transport';
+      case 'moving': return 'Moving Service';
+      case 'disposal': return 'Disposal Service';
+      case 'transport': return 'Transport Service';
       default: return type;
     }
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const filteredChatRooms = chatRooms.filter((chatRoom: ChatRoom) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      chatRoom.bookingId.toLowerCase().includes(searchLower) ||
+      chatRoom.bookingType.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (loading) {
     return (
@@ -107,8 +188,9 @@ const ChatList: React.FC = () => {
   if (showChat && selectedChatRoom) {
     return (
       <div className="space-y-4">
-        <Button variant="outline" onClick={handleCloseChat}>
-          ← Back to Chat Rooms
+        <Button variant="outline" onClick={handleCloseChat} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Chat Rooms
         </Button>
         <Chat chatRoomId={selectedChatRoom} onClose={handleCloseChat} />
       </div>
@@ -116,73 +198,146 @@ const ChatList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Secure Chats</h2>
-        <Badge variant="secondary">
-          {chatRooms.length} {chatRooms.length === 1 ? 'chat' : 'chats'}
-        </Badge>
+    <div className="space-y-6">
+      {/* Enhanced Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            Secure Chats
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            {isCompany 
+              ? "Communicate with your customers"
+              : "Chat with service providers"
+            }
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-sm">
+            {chatRooms.length} {chatRooms.length === 1 ? 'chat' : 'chats'}
+          </Badge>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Filter className="h-4 w-4" />
+            Filter
+          </Button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search chats by booking ID or service type..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
       </div>
 
       {chatRooms.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No chats yet</h3>
-            <p className="text-muted-foreground text-center">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="relative">
+              <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
+              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                0
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No chats yet</h3>
+            <p className="text-muted-foreground text-center max-w-md">
               {isCompany 
-                ? "You'll see chat rooms here when customers approve your bookings."
-                : "You'll see chat rooms here when companies approve your bookings."
+                ? "You'll see chat rooms here when customers approve your bookings. Start by accepting some service requests!"
+                : "You'll see chat rooms here when companies approve your bookings. Start by creating some service requests!"
               }
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {chatRooms.map((chatRoom: ChatRoom) => (
-            <Card 
-              key={chatRoom.id} 
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleChatRoomClick(chatRoom.id)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src="" />
-                      <AvatarFallback>
-                        {isCompany ? <Building2 className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">
-                          {getBookingTypeLabel(chatRoom.bookingType)} Service
-                        </h3>
-                        <Badge variant="outline">
-                          {chatRoom.bookingType}
-                        </Badge>
+        <div className="space-y-4">
+          {filteredChatRooms.map((chatRoom: ChatRoom) => {
+            const isUnread = unreadChats.has(chatRoom.id);
+            
+            return (
+              <Card 
+                key={chatRoom.id} 
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                  isUnread ? 'border-l-4 border-l-primary bg-blue-50/50' : ''
+                }`}
+                onClick={() => handleChatRoomClick(chatRoom.id)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12 bg-gradient-to-r from-primary to-blue-600">
+                          <AvatarImage src="" />
+                          <AvatarFallback className="text-white">
+                            {isCompany ? <Building2 className="h-6 w-6" /> : <User className="h-6 w-6" />}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isUnread && (
+                          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            !
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Booking ID: {chatRoom.bookingId}
-                      </p>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg truncate">
+                            {getBookingTypeLabel(chatRoom.bookingType)}
+                          </h3>
+                          <Badge variant="outline" className="shrink-0">
+                            {chatRoom.bookingType}
+                          </Badge>
+                          {isUnread && (
+                            <Badge className="bg-red-500 text-white text-xs">
+                              New
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3" />
+                            <span>Booking ID: {chatRoom.bookingId}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            <span>Created: {formatDate(chatRoom.createdAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MessageCircle className="h-3 w-3" />
+                            <span>Last updated: {formatDate(chatRoom.updatedAt)} at {formatTime(chatRoom.updatedAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                      <MessageCircle className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">
-                        Last updated
-                      </p>
-                      <p className="text-sm font-medium">
-                        {formatDate(chatRoom.updatedAt)}
-                      </p>
-                    </div>
-                    <MessageCircle className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          
+          {filteredChatRooms.length === 0 && searchTerm && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No chats found</h3>
+                <p className="text-muted-foreground text-center">
+                  No chats match your search for "{searchTerm}"
+                </p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       )}
     </div>
