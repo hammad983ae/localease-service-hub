@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { gql, useQuery } from '@apollo/client';
 import { useMutation } from '@apollo/client';
+import ChatBot from '@/components/ChatBot';
 
 interface ServiceRequest {
   id: string;
@@ -332,6 +332,9 @@ const CompanyDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add ChatBot component */}
+      <ChatBot userType="company" />
     </div>
   );
 };
