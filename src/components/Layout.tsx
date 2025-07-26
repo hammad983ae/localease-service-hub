@@ -9,9 +9,9 @@ const Layout: React.FC = () => {
   const hideNavigation = location.pathname === '/' || location.pathname === '/auth';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col">
       {!hideNavigation && <Header />}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-20"> {/* Increased bottom padding for better spacing */}
         <Outlet />
       </main>
       {!hideNavigation && <BottomNavigation />}

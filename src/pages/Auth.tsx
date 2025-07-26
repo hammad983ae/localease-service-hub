@@ -28,8 +28,8 @@ const Auth: React.FC = () => {
     if (isLogin) {
       result = await signIn(email, password);
     } else {
-      // If company, register with role 'company'
-      result = await signUp(email, password, fullName, isCompany ? 'company' : 'user');
+      // Fix: Call signUp with correct number of arguments
+      result = await signUp(email, password, fullName);
     }
     setLoading(false);
     if (!result?.error) {
@@ -59,12 +59,12 @@ const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col">
       <div className="p-4">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 hover:bg-white/80 backdrop-blur-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Home
@@ -72,29 +72,32 @@ const Auth: React.FC = () => {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-xl font-bold text-primary">L</span>
-              </div>
+        <Card className="w-full max-w-md shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-4">
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-white">L</span>
             </div>
-            <CardTitle className="text-2xl">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </CardTitle>
+            <div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                {isLogin ? 'Welcome Back' : 'Create Account'}
+              </CardTitle>
+              <p className="text-gray-500 mt-2">
+                {isLogin ? 'Sign in to your LocalEase account' : 'Get started with LocalEase'}
+              </p>
+            </div>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-3">
-                  <Label>Account Type</Label>
+                  <Label className="text-sm font-medium text-gray-700">Account Type</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       type="button"
                       variant={isCompany ? 'default' : 'outline'}
                       onClick={() => setIsCompany(true)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 h-12"
                     >
                       <Building2 className="h-4 w-4" />
                       Company
@@ -103,7 +106,7 @@ const Auth: React.FC = () => {
                       type="button"
                       variant={!isCompany ? 'default' : 'outline'}
                       onClick={() => setIsCompany(false)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 h-12"
                     >
                       <User className="h-4 w-4" />
                       User
@@ -114,7 +117,7 @@ const Auth: React.FC = () => {
 
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                     {isCompany ? 'Company Name' : 'Full Name'}
                   </Label>
                   <Input
@@ -123,35 +126,38 @@ const Auth: React.FC = () => {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required={!isLogin}
+                    className="h-12"
                   />
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="h-12"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="h-12"
                 />
               </div>
               
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                 disabled={loading}
               >
                 {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
@@ -161,7 +167,7 @@ const Auth: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline font-medium"
                 >
                   {isLogin 
                     ? "Don't have an account? Sign up" 
@@ -178,4 +184,3 @@ const Auth: React.FC = () => {
 };
 
 export default Auth;
-

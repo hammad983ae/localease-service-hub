@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Trash2, Car, Sparkles, TreePine } from 'lucide-react';
+import { Truck, Trash2, Car, Sparkles, TreePine, ArrowRight, Shield, Clock, Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import ServiceCard from '@/components/ServiceCard';
 
 const Home: React.FC = () => {
@@ -62,105 +63,94 @@ const Home: React.FC = () => {
     }
   };
 
+  const features = [
+    {
+      icon: Shield,
+      title: 'Trusted & Insured',
+      description: 'All our partners are fully licensed and insured'
+    },
+    {
+      icon: Clock,
+      title: 'Quick Response',
+      description: 'Get quotes within minutes, service within hours'
+    },
+    {
+      icon: Star,
+      title: 'Top Quality',
+      description: '4.9+ rating from thousands of satisfied customers'
+    }
+  ];
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Hero Section */}
-      <div className="mb-8 text-center space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome to LocalEase!
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Your one-stop solution for all home services
-          </p>
+      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
+              Welcome to{' '}
+              <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                LocalEase
+              </span>
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Your trusted partner for all home services. Professional, reliable, and just a tap away.
+            </p>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardContent className="p-4 text-center">
+                  <feature.icon className="h-6 w-6 text-primary mx-auto mb-2" />
+                  <h3 className="font-semibold text-sm text-gray-900 mb-1">{feature.title}</h3>
+                  <p className="text-xs text-gray-600">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Services Grid */}
-        <div className="lg:col-span-2">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground mb-4">
-                Our Services
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
-                {services.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    {...service}
-                    onClick={() => handleServiceClick(service)}
-                  />
-                ))}
+      {/* Services Section */}
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Our Services</h2>
+            <Button variant="ghost" className="text-primary hover:bg-primary/10">
+              View All
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {services.map((service) => (
+              <ServiceCard
+                key={service.id}
+                {...service}
+                onClick={() => handleServiceClick(service)}
+              />
+            ))}
+          </div>
+
+          {/* CTA Section */}
+          <Card className="bg-gradient-to-r from-primary to-blue-600 text-white border-0 shadow-xl">
+            <CardContent className="p-8 text-center">
+              <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-90" />
+              <h3 className="text-2xl font-bold mb-3">Ready to get started?</h3>
+              <p className="text-lg opacity-90 mb-6 max-w-md mx-auto">
+                Choose a service above and get your first quote in minutes. Join thousands of satisfied customers!
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 text-sm opacity-75">
+                <span>⭐ 4.9+ Rating</span>
+                <span>•</span>
+                <span>🚀 Quick Service</span>
+                <span>•</span>
+                <span>🛡️ Fully Insured</span>
               </div>
-            </div>
-
-            {/* Why Choose Us Section */}
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-100">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                  Why choose our services?
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                      Professional and experienced teams
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                      Transparent pricing with no hidden fees
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                      Fully insured and licensed
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                      24/7 customer support
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="space-y-6">
-            {/* Get Started Card */}
-            <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-100">
-              <CardContent className="p-6 text-center">
-                <Sparkles className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-2">Ready to get started?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Choose a service above and get your first quote in minutes!
-                </p>
-                <div className="text-xs text-muted-foreground">
-                  ⭐ Join thousands of satisfied customers
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Tips Card */}
-            <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-green-100">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-foreground mb-3 flex items-center">
-                  <Sparkles className="h-4 w-4 mr-2 text-green-600" />
-                  Quick Tips
-                </h3>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>💡 Book services in advance for better scheduling</p>
-                  <p>📋 Prepare a detailed inventory for moving services</p>
-                  <p>🏠 Clear pathways for easier service delivery</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
