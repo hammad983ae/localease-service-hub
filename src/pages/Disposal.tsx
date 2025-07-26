@@ -4,17 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Trash2, Recycle, Home, Building } from 'lucide-react';
+import { ArrowLeft, Trash2, Recycle, Home, Building, Calculator, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import DisposalFlow from '@/components/disposal/DisposalFlow';
-// TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 
 const Disposal: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<'quote' | 'supplier' | null>(null);
+  const [showServiceTypes, setShowServiceTypes] = useState(false);
 
   // Fetch user profile to get the full name
   const { data: profile } = useQuery({
@@ -68,9 +68,12 @@ const Disposal: React.FC = () => {
   const handleServiceClick = (service: typeof disposalServices[0]) => {
     if (service.available) {
       setSelectedService(service.id);
-      // For now, default to quote type - could add a selection dialog later
-      setSelectedType('quote');
+      setShowServiceTypes(true);
     }
+  };
+
+  const handleTypeSelection = (type: 'quote' | 'supplier') => {
+    setSelectedType(type);
   };
 
   if (selectedType) {
@@ -79,9 +82,106 @@ const Disposal: React.FC = () => {
         type={selectedType}
         onBack={() => {
           setSelectedType(null);
+          setShowServiceTypes(false);
           setSelectedService(null);
         }}
       />
+    );
+  }
+
+  if (showServiceTypes) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6 max-w-2xl mx-auto">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowServiceTypes(false)}
+            className="hover:bg-muted/50"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-foreground">Disposal Services</h1>
+          </div>
+          <div className="w-10" />
+        </div>
+
+        {/* Greeting */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-foreground">
+            Hi {firstName}, what type of disposal service do you need?
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Choose the option that best fits your needs
+          </p>
+        </div>
+
+        {/* Service Options */}
+        <div className="space-y-4">
+          <Card 
+            className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
+            onClick={() => handleTypeSelection('quote')}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 rounded-full bg-blue-50">
+                  <Calculator className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Request for Service</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Get an instant quote for your disposal needs
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">
+                Provide details about your disposal and receive a detailed quote instantly. 
+                Perfect for planning and scheduling your waste removal.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
+            onClick={() => handleTypeSelection('supplier')}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 rounded-full bg-green-50">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Choose Company</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Select and book disposal companies directly
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">
+                Browse verified disposal companies in your area. 
+                Compare services and book the one that fits your needs.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Additional Info */}
+        <div className="mt-8 p-4 bg-muted/50 rounded-lg">
+          <h3 className="font-medium text-foreground mb-2">Why choose our disposal services?</h3>
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            <li>• Eco-friendly disposal methods</li>
+            <li>• Licensed and insured professionals</li>
+            <li>• Same-day and scheduled pickups</li>
+            <li>• Transparent pricing structure</li>
+          </ul>
+        </div>
+      </div>
     );
   }
 
