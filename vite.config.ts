@@ -10,17 +10,24 @@ export default defineConfig(async ({ command, mode }) => {
   // Only try to load component tagger in development mode
   if (command === 'serve') {
     try {
-      const { componentTagger } = await import('@lovable/vite-plugin-component-tagger').catch(() => ({ componentTagger: null }));
+      const componentTagger = await import('@lovable/vite-plugin-component-tagger').then(
+        (module) => module.componentTagger
+      ).catch(() => null);
+      
       if (componentTagger) {
         plugins.push(componentTagger());
       }
     } catch (error) {
       // Silently ignore if plugin is not available
+      console.log('Component tagger plugin not available');
     }
   }
 
   return {
     plugins,
+    server: {
+      port: 8080
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
