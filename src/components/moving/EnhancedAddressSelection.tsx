@@ -1,188 +1,210 @@
-
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import GoogleMaps from '@/components/ui/google-maps';
-
-interface Address {
-  id: string;
-  label: string;
-  address: string;
-}
+import { MapPin, Home, Building } from 'lucide-react';
+import { IsometricMap, Room } from './IsometricMap';
 
 interface EnhancedAddressSelectionProps {
-  data: {
-    from: string;
-    to: string;
-  };
-  onUpdate: (addresses: { from: string; to: string }) => void;
+  onAddressesUpdate: (addresses: any) => void;
+  initialData?: any;
 }
 
-const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ data, onUpdate }) => {
-  const { t } = useLanguage();
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  const [fromType, setFromType] = useState<'saved' | 'custom'>('custom');
-  const [toType, setToType] = useState<'saved' | 'custom'>('custom');
+interface AddressState {
+  from: string;
+  to: string;
+  fromFloor: string;
+  toFloor: string;
+}
+
+const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({
+  onAddressesUpdate,
+  initialData
+}) => {
+  const [addresses, setAddresses] = useState<AddressState>({
+    from: initialData?.fromAddress || '',
+    to: initialData?.toAddress || '',
+    fromFloor: initialData?.fromFloor || '',
+    toFloor: initialData?.toFloor || '',
+  });
+  const [selectedMapRooms, setSelectedMapRooms] = useState<Room[]>([]);
 
   useEffect(() => {
-    // Load saved addresses from localStorage or API
-    const saved = localStorage.getItem('user-addresses');
-    if (saved) {
-      setSavedAddresses(JSON.parse(saved));
+    if (initialData) {
+      setAddresses({
+        from: initialData?.fromAddress || '',
+        to: initialData?.toAddress || '',
+        fromFloor: initialData?.fromFloor || '',
+        toFloor: initialData?.toFloor || '',
+      });
     }
-  }, []);
+  }, [initialData]);
 
-  const handleFromChange = (value: string, type: 'saved' | 'custom') => {
-    if (type === 'saved') {
-      const address = savedAddresses.find(addr => addr.id === value);
-      if (address) {
-        onUpdate({ ...data, from: address.address });
+  const handleAddressChange = (field: keyof AddressState, value: string) => {
+    setAddresses(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    onAddressesUpdate({
+      ...addresses,
+      [field]: value
+    });
+  };
+
+  const handleMapRoomSelect = (room: Room) => {
+    // Placeholder for map room selection logic
+    console.log("Selected room from map:", room);
+    setSelectedMapRooms(prev => {
+      const isSelected = prev.some(r => r.id === room.id);
+      if (isSelected) {
+        return prev.filter(r => r.id !== room.id);
+      } else {
+        return [...prev, { ...room, selected: true }];
       }
-    } else {
-      onUpdate({ ...data, from: value });
-    }
+    });
   };
 
-  const handleToChange = (value: string, type: 'saved' | 'custom') => {
-    if (type === 'saved') {
-      const address = savedAddresses.find(addr => addr.id === value);
-      if (address) {
-        onUpdate({ ...data, to: address.address });
-      }
-    } else {
-      onUpdate({ ...data, to: value });
-    }
+  const handleMapRoomAdd = (room: Room) => {
+    // Placeholder for map room addition logic
+    console.log("Added room from map:", room);
   };
-
-  const handleFromLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('From location selected:', location);
-    handleFromChange(location.address, 'custom');
-  };
-
-  const handleToLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('To location selected:', location);
-    handleToChange(location.address, 'custom');
-  };
-
-  const AddressInput = ({ 
-    label, 
-    value, 
-    onChange, 
-    type,
-    onTypeChange, 
-    placeholder, 
-    color,
-    onLocationSelect
-  }: {
-    label: string;
-    value: string;
-    onChange: (value: string, type: 'saved' | 'custom') => void;
-    type: 'saved' | 'custom';
-    onTypeChange: (type: 'saved' | 'custom') => void;
-    placeholder: string;
-    color: string;
-    onLocationSelect: (location: { address: string; lat: number; lng: number }) => void;
-  }) => (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <MapPin className={`h-5 w-5 ${color}`} />
-          <Label className="font-medium">{label}</Label>
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex space-x-2">
-            <Button
-              variant={type === 'saved' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onTypeChange('saved')}
-              disabled={savedAddresses.length === 0}
-            >
-              Saved
-            </Button>
-            <Button
-              variant={type === 'custom' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onTypeChange('custom')}
-            >
-              Custom
-            </Button>
-          </div>
-          
-          {type === 'saved' && savedAddresses.length > 0 ?
-            <Select onValueChange={(value) => onChange(value, 'saved')}>
-              <SelectTrigger className="text-base">
-                <SelectValue placeholder="Select saved address" />
-              </SelectTrigger>
-              <SelectContent>
-                {savedAddresses.map((address) => (
-                  <SelectItem key={address.id} value={address.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{address.label}</span>
-                      <span className="text-sm text-muted-foreground">{address.address}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <GoogleMaps
-              placeholder={placeholder}
-              value={value}
-              onChange={(value) => onChange(value, 'custom')}
-              onLocationSelect={onLocationSelect}
-              className="text-base"
-            />
-          )}
-          
-          {savedAddresses.length === 0 && (
-            <div className="text-sm text-muted-foreground">
-              <p>No saved addresses found.</p>
-              <p>Add addresses in your profile to use them here.</p>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
-    <div className="space-y-6">
-      <AddressInput
-        label={t('moving.from')}
-        value={data.from}
-        onChange={handleFromChange}
-        type={fromType}
-        onTypeChange={setFromType}
-        placeholder="Enter pickup address"
-        color="text-green-600"
-        onLocationSelect={handleFromLocationSelect}
-      />
-
-      <AddressInput
-        label={t('moving.to')}
-        value={data.to}
-        onChange={handleToChange}
-        type={toType}
-        onTypeChange={setToType}
-        placeholder="Enter destination address"
-        color="text-red-600"
-        onLocationSelect={handleToLocationSelect}
-      />
-
-      <div className="bg-muted rounded-lg p-4">
-        <div className="aspect-video bg-background rounded-lg flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <MapPin className="h-8 w-8 mx-auto mb-2" />
-            <p className="text-sm">Interactive map will show here</p>
-            <p className="text-xs">Use the address inputs above for Google Maps autocomplete</p>
-          </div>
-        </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
+          Select Your Addresses
+        </h2>
+        <p className="text-muted-foreground text-lg">
+          Choose your moving locations with our interactive map
+        </p>
       </div>
+
+      {/* Interactive Map */}
+      <Card className="glass-card border-primary/20">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardTitle className="flex items-center space-x-2 text-primary">
+            <MapPin className="h-5 w-5" />
+            <span>Interactive Location Selector</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <IsometricMap 
+            mode="address-selection"
+            onRoomSelect={handleMapRoomSelect}
+            selectedRooms={selectedMapRooms}
+            onRoomAdd={handleMapRoomAdd}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Address Form */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* From Address */}
+        <Card className="glass-card hover:shadow-xl transition-all duration-300">
+          <CardHeader className="bg-gradient-to-br from-green-500/10 to-emerald-500/10">
+            <CardTitle className="flex items-center space-x-2 text-green-600">
+              <Home className="h-5 w-5" />
+              <span>From Address</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fromAddress" className="text-sm font-medium text-foreground/80">
+                Current Address
+              </Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="fromAddress"
+                  value={addresses.from}
+                  onChange={(e) => handleAddressChange('from', e.target.value)}
+                  placeholder="Enter your current address"
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* To Address */}
+        <Card className="glass-card hover:shadow-xl transition-all duration-300">
+          <CardHeader className="bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+            <CardTitle className="flex items-center space-x-2 text-blue-600">
+              <MapPin className="h-5 w-5" />
+              <span>To Address</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="toAddress" className="text-sm font-medium text-foreground/80">
+                Destination Address
+              </Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="toAddress"
+                  value={addresses.to}
+                  onChange={(e) => handleAddressChange('to', e.target.value)}
+                  placeholder="Enter your destination address"
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Floor Selection */}
+      <Card className="glass-card">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardTitle className="flex items-center space-x-2 text-primary">
+            <Building className="h-5 w-5" />
+            <span>Floor Information</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">From Floor</Label>
+              <Select value={addresses.fromFloor} onValueChange={(value) => handleAddressChange('fromFloor', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select floor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ground">Ground Floor</SelectItem>
+                  <SelectItem value="1">1st Floor</SelectItem>
+                  <SelectItem value="2">2nd Floor</SelectItem>
+                  <SelectItem value="3">3rd Floor</SelectItem>
+                  <SelectItem value="4">4th Floor</SelectItem>
+                  <SelectItem value="5+">5th Floor or Higher</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">To Floor</Label>
+              <Select value={addresses.toFloor} onValueChange={(value) => handleAddressChange('toFloor', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select floor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ground">Ground Floor</SelectItem>
+                  <SelectItem value="1">1st Floor</SelectItem>
+                  <SelectItem value="2">2nd Floor</SelectItem>
+                  <SelectItem value="3">3rd Floor</SelectItem>
+                  <SelectItem value="4">4th Floor</SelectItem>
+                  <SelectItem value="5+">5th Floor or Higher</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
