@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowLeft, User, Bell, Sparkles } from 'lucide-react';
+import { ArrowLeft, User, Bell } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -12,59 +12,51 @@ const Header: React.FC = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/home':
-        return null;
+        return null; // Show logo instead
       case '/bookings':
-        return 'Mijn Boekingen';
+        return 'My Bookings';
       case '/profile':
-        return 'Profiel';
+        return 'Profile';
       case '/support':
-        return 'Ondersteuning';
+        return 'Support';
       case '/moving':
-        return 'Verhuisservice';
+        return 'Moving Service';
       case '/disposal':
-        return 'Afvalservice';
+        return 'Disposal Service';
       case '/transport':
-        return 'Transportservice';
-      case '/chats':
-        return 'Berichten';
-      case '/quotes':
-        return 'Offertes';
+        return 'Transport Service';
       default:
         return 'LocalEase';
     }
   };
 
   return (
-    <header className="nav-futuristic sticky top-0 z-50">
-      <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
           {!isHomePage && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="hover:bg-primary/10 rounded-2xl transition-all duration-300 hover:scale-105"
+              className="hover:bg-gray-100 rounded-xl"
             >
-              <ArrowLeft className="h-5 w-5 text-gray-700" />
+              <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
           {isHomePage ? (
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-sm font-bold text-white">L</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                  LocalEase
-                </span>
-                <span className="text-xs text-gray-500 font-medium">AI-Powered Platform</span>
-              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                LocalEase
+              </span>
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
-              <h1 className="text-lg font-bold text-gray-900">{getPageTitle()}</h1>
-              <Sparkles className="w-4 h-4 text-primary" />
-            </div>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {getPageTitle()}
+            </h1>
           )}
         </div>
         
@@ -72,19 +64,19 @@ const Header: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="hover:bg-primary/10 rounded-2xl relative transition-all duration-300 hover:scale-105"
+            className="hover:bg-gray-100 rounded-xl relative"
           >
-            <Bell className="h-5 w-5 text-gray-700" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full shadow-lg animate-pulse"></div>
+            <Bell className="h-5 w-5" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/profile')}
-            title="Profiel"
-            className="hover:bg-primary/10 rounded-2xl transition-all duration-300 hover:scale-105"
+            title="Profile"
+            className="hover:bg-gray-100 rounded-xl"
           >
-            <User className="h-5 w-5 text-gray-700" />
+            <User className="h-5 w-5" />
           </Button>
         </div>
       </div>

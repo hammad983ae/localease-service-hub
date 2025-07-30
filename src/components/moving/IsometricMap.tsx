@@ -18,7 +18,7 @@ export interface Room {
 interface IsometricMapProps {
   onRoomSelect?: (room: Room) => void;
   selectedRooms?: Room[];
-  mode: 'room-selection' | 'item-placement' | 'address-selection';
+  mode: 'room-selection' | 'item-placement';
   onRoomAdd?: (room: Room) => void;
 }
 
@@ -205,7 +205,7 @@ export const IsometricMap: React.FC<IsometricMapProps> = ({
   const maxFloors = 3;
 
   const handleRoomClick = (room: Room) => {
-    if ((mode === 'room-selection' || mode === 'address-selection') && onRoomSelect) {
+    if (mode === 'room-selection' && onRoomSelect) {
       onRoomSelect(room);
     }
   };

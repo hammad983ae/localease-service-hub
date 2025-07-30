@@ -3,16 +3,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-// https://vitejs.dev/config/
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ command }) => {
   const plugins = [react()];
   
-  if (mode === 'development') {
+  if (command === 'serve') {
     try {
       const { componentTagger } = await import("lovable-tagger");
-      plugins.push(componentTagger() as any);
-    } catch (error) {
-      console.warn('Failed to load lovable-tagger:', error);
+      plugins.push(componentTagger());
+    } catch (e) {
+      console.warn('lovable-tagger not available:', e);
     }
   }
   

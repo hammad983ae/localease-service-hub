@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
@@ -14,12 +13,6 @@ interface GoogleMapsProps {
   onChange?: (value: string) => void;
   className?: string;
   disabled?: boolean;
-}
-
-declare global {
-  interface Window {
-    google: typeof google;
-  }
 }
 
 const GoogleMaps: React.FC<GoogleMapsProps> = ({
@@ -57,11 +50,11 @@ const GoogleMaps: React.FC<GoogleMapsProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || !inputRef.current || disabled || !window.google) return;
+    if (!isLoaded || !inputRef.current || disabled) return;
 
     try {
       // Initialize Google Places Autocomplete
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+      autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
         componentRestrictions: { country: 'us' }, // Restrict to US addresses
         fields: ['formatted_address', 'geometry', 'place_id']
@@ -90,8 +83,8 @@ const GoogleMaps: React.FC<GoogleMapsProps> = ({
       });
 
       return () => {
-        if (autocompleteRef.current && window.google) {
-          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        if (autocompleteRef.current) {
+          google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
       };
     } catch (error) {
@@ -131,4 +124,4 @@ const GoogleMaps: React.FC<GoogleMapsProps> = ({
   );
 };
 
-export default GoogleMaps;
+export default GoogleMaps; 
