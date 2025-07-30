@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Building2, 
   Calendar, 
@@ -24,26 +25,84 @@ import {
   Award,
   Target,
   Filter,
-  Download
+  Download,
+  Send,
+  X,
+  User,
+  ArrowLeft,
+  MoreVertical,
+  FileText,
+  Eye,
+  Truck,
+  Package,
+  Home,
+  Building
 } from 'lucide-react';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
-import ChatBot from '@/components/ChatBot';
+import Chat from '@/components/Chat';
 
-interface ServiceRequest {
+// TypeScript Interfaces
+interface Booking {
   id: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  serviceType: string;
-  fromAddress: string;
-  toAddress: string;
-  requestedDate: string;
   status: 'pending' | 'accepted' | 'rejected' | 'completed';
   createdAt: string;
-  notes?: string;
+  dateTime?: string;
+  dateTimeFlexible?: string;
+  addresses?: { from: string; to: string };
+  contact?: { name: string; email: string; phone: string; notes?: string };
+  rooms?: Array<{ room: string; floor: number; count: number }>;
+  items?: any[];
+  company?: { name: string; email: string; phone: string; address: string };
 }
 
+interface ChatRoom {
+  id: string;
+  bookingId: string;
+  bookingType: string;
+  userId: string;
+  companyId: string;
+  isActive: boolean;
+  createdAt: string;
+  lastMessage?: {
+    id: string;
+    content: string;
+    createdAt: string;
+  };
+}
+
+interface Invoice {
+  id: string;
+  bookingId: string;
+  companyId: string;
+  createdBy: string;
+  amount: number;
+  currency: string;
+  status: string;
+  documentUrl?: string;
+  createdAt: string;
+  bookingDetails?: any;
+}
+
+interface User {
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+}
+
+interface DashboardStats {
+  totalRequests: number;
+  pendingRequests: number;
+  acceptedRequests: number;
+  completedRequests: number;
+  rating: number;
+  totalReviews: number;
+  monthlyRevenue: number;
+  responseTime: string;
+}
+
+// GraphQL Queries
 const COMPANY_BOOKINGS_QUERY = gql`
   query CompanyBookings {
     companyBookings {
@@ -79,476 +138,833 @@ const COMPANY_REJECT_BOOKING_MUTATION = gql`
   }
 `;
 
+const GET_COMPANY_CHAT_ROOMS = gql`
+  query CompanyChatRooms {
+    companyChatRooms {
+      id
+      bookingId
+      bookingType
+      userId
+      companyId
+      isActive
+      createdAt
+      lastMessage {
+        id
+        content
+        createdAt
+      }
+    }
+  }
+`;
+
+const GET_COMPANY_INVOICES = gql`
+  query GetCompanyInvoices {
+    companyQuoteDocuments {
+      id
+      bookingId
+      companyId
+      createdBy
+      amount
+      currency
+      status
+      documentUrl
+      createdAt
+      bookingDetails
+    }
+  }
+`;
+
+// Helper Components
+const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
+  const iconMap = {
+    pending: <AlertCircle className="h-4 w-4 text-yellow-500" />,
+    accepted: <CheckCircle className="h-4 w-4 text-green-500" />,
+    rejected: <XCircle className="h-4 w-4 text-red-500" />,
+    completed: <CheckCircle className="h-4 w-4 text-blue-500" />
+  };
+  return iconMap[status as keyof typeof iconMap] || <Clock className="h-4 w-4" />;
+};
+
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const colorMap = {
+    pending: 'secondary',
+    accepted: 'default',
+    rejected: 'destructive',
+    completed: 'outline'
+  } as const;
+  
+  return (
+    <Badge variant={colorMap[status as keyof typeof colorMap] || 'secondary'}>
+      {status}
+    </Badge>
+  );
+};
+
+// Dashboard Header Component
+const DashboardHeader: React.FC<{ user: User | null }> = ({ user }) => (
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+    <div className="flex items-center gap-4">
+      <Avatar className="h-16 w-16 bg-gradient-to-r from-primary to-blue-600">
+        <AvatarFallback className="bg-transparent text-white text-xl font-bold">
+          {user?.full_name?.charAt(0) || 'C'}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          Welcome back, {user?.full_name || 'Company'}
+        </h1>
+        <p className="text-muted-foreground text-lg mt-1">
+          Manage your business operations and grow your success
+        </p>
+      </div>
+    </div>
+    <div className="flex gap-3">
+      <Button variant="outline" className="gap-2">
+        <Download className="h-4 w-4" />
+        Export Report
+      </Button>
+    </div>
+  </div>
+);
+
+// Stats Card Component
+const StatsCard: React.FC<{
+  title: string;
+  value: string | number | React.ReactNode;
+  subtitle: string;
+  icon: React.ReactNode;
+  gradient: string;
+  iconColor: string;
+}> = ({ title, value, subtitle, icon, gradient, iconColor }) => (
+  <Card className={`bg-gradient-to-br ${gradient} text-white border-0 shadow-xl transform hover:scale-105 transition-all duration-200`}>
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white/80 font-medium">{title}</p>
+          <p className="text-3xl font-bold mt-2">{value}</p>
+          <div className="flex items-center gap-2 mt-3">
+            {icon}
+            <span className="text-sm">{subtitle}</span>
+          </div>
+        </div>
+        <div className={`h-12 w-12 ${iconColor}`}>
+          {icon}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Stats Grid Component
+const StatsGrid: React.FC<{ stats: DashboardStats }> = ({ stats }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <StatsCard
+      title="Total Requests"
+      value={stats.totalRequests}
+      subtitle="All time"
+      icon={<TrendingUp className="h-4 w-4" />}
+      gradient="from-blue-500 to-blue-600"
+      iconColor="text-blue-200"
+    />
+    <StatsCard
+      title="Pending"
+      value={stats.pendingRequests}
+      subtitle="Pending"
+      icon={<Clock className="h-4 w-4" />}
+      gradient="from-amber-500 to-orange-500"
+      iconColor="text-amber-200"
+    />
+    <StatsCard
+      title="Completed"
+      value={stats.completedRequests}
+      subtitle="Success rate: 94%"
+      icon={<CheckCircle className="h-4 w-4" />}
+      gradient="from-emerald-500 to-green-600"
+      iconColor="text-emerald-200"
+    />
+    <StatsCard
+      title="Rating"
+      value={
+        <span className="flex items-center gap-2">
+          {stats.rating}
+          <Star className="h-5 w-5 text-yellow-300 fill-current" />
+        </span>
+      }
+      subtitle={`${stats.totalReviews} reviews`}
+      icon={<Award className="h-4 w-4" />}
+      gradient="from-purple-500 to-purple-600"
+      iconColor="text-purple-200"
+    />
+  </div>
+);
+
+// Booking Item Component
+const BookingItem: React.FC<{
+  booking: Booking;
+  onChatClick: (bookingId: string) => void;
+}> = ({ booking, onChatClick }) => (
+  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+    <div className="flex items-center gap-3">
+      <StatusIcon status={booking.status} />
+      <div>
+        <p className="font-medium">
+          {booking.contact?.name || 'Customer'}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {booking.addresses?.from || 'Moving service'}
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <StatusBadge status={booking.status} />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onChatClick(booking.id)}
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
+
+// Chat Room Item Component
+const ChatRoomItem: React.FC<{
+  room: ChatRoom;
+  onChatClick: (bookingId: string) => void;
+}> = ({ room, onChatClick }) => (
+  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+    <div className="flex items-center gap-3">
+      <Avatar className="h-8 w-8">
+        <AvatarFallback>
+          <User className="h-4 w-4" />
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="font-medium">Booking #{room.bookingId}</p>
+        <p className="text-sm text-muted-foreground">
+          {room.lastMessage?.content || 'No messages yet'}
+        </p>
+      </div>
+    </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => onChatClick(room.bookingId)}
+    >
+      <MessageCircle className="h-4 w-4" />
+    </Button>
+  </div>
+);
+
+// Invoice Item Component
+const InvoiceItem: React.FC<{
+  invoice: Invoice;
+  onViewDetails: (invoice: Invoice) => void;
+}> = ({ invoice, onViewDetails }) => (
+  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-primary/10 rounded-lg">
+        <DollarSign className="h-5 w-5 text-primary" />
+      </div>
+      <div>
+        <p className="font-medium">Invoice #{invoice.id}</p>
+        <p className="text-sm text-muted-foreground">
+          Amount: ${invoice.amount} {invoice.currency}
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
+        {invoice.status}
+      </Badge>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onViewDetails(invoice)}
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
+
+// Chat Interface Component
+const ChatInterface: React.FC<{
+  activeChat: string;
+  currentActiveChatRoom: ChatRoom | null;
+  onCloseChat: () => void;
+}> = ({ activeChat, currentActiveChatRoom, onCloseChat }) => (
+  <div className="h-screen flex flex-col bg-white">
+    <div className="bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-4 shadow-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCloseChat}
+            className="gap-2 text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 bg-white/20">
+              <AvatarFallback className="text-white">
+                <User className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-lg font-semibold">Customer Chat</h2>
+              <p className="text-sm text-white/80">
+                Booking #{activeChat}
+              </p>
+            </div>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+    <div className="flex-1 overflow-hidden">
+      <Chat chatRoomId={currentActiveChatRoom?.id || ''} onClose={onCloseChat} />
+    </div>
+  </div>
+);
+
+// Service Analytics Component
+const ServiceAnalytics: React.FC<{ 
+  bookings: Booking[];
+  invoices: Invoice[];
+}> = ({ bookings, invoices }) => {
+  const completedBookings = bookings.filter(b => b.status === 'completed');
+  
+  // Calculate actual revenue from invoices
+  const totalRevenue = invoices.reduce((sum, invoice) => {
+    return sum + (invoice.amount || 0);
+  }, 0);
+
+  // Calculate average revenue per invoice
+  const averageRevenue = invoices.length > 0 ? totalRevenue / invoices.length : 0;
+
+  // Calculate monthly revenue (invoices from current month)
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const monthlyInvoices = invoices.filter(invoice => {
+    const invoiceDate = new Date(invoice.createdAt);
+    return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
+  });
+  const monthlyRevenue = monthlyInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+
+  // Calculate previous month revenue for growth comparison
+  const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const previousMonthInvoices = invoices.filter(invoice => {
+    const invoiceDate = new Date(invoice.createdAt);
+    return invoiceDate.getMonth() === previousMonth && invoiceDate.getFullYear() === previousYear;
+  });
+  const previousMonthRevenue = previousMonthInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+  
+  // Calculate growth percentage
+  const growthPercentage = previousMonthRevenue > 0 
+    ? Math.round(((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100)
+    : 0;
+
+  const serviceTypes = completedBookings.reduce((acc, booking) => {
+    const type = booking.addresses?.from ? 'Moving Service' : 'Other Service';
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Card className="shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Completed Services
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-green-600">{completedBookings.length}</p>
+              <p className="text-sm text-muted-foreground">Total Completed</p>
+            </div>
+            <div className="space-y-2">
+              {Object.entries(serviceTypes).map(([type, count]) => (
+                <div key={type} className="flex justify-between items-center">
+                  <span className="text-sm">{type}</span>
+                  <Badge variant="outline">{count}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Revenue Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-green-600">${totalRevenue.toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground">Total Revenue</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Average per invoice</span>
+                <span className="font-medium">${Math.round(averageRevenue).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">This month</span>
+                <span className={`font-medium ${growthPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {growthPercentage >= 0 ? '+' : ''}{growthPercentage}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Monthly revenue</span>
+                <span className="font-medium">${monthlyRevenue.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+            Performance Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Customer Satisfaction</span>
+                <span className="font-semibold">96%</span>
+              </div>
+              <Progress value={96} className="h-2" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Service Completion Rate</span>
+                <span className="font-semibold">94%</span>
+              </div>
+              <Progress value={94} className="h-2" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Response Time</span>
+                <span className="font-semibold">2.3 hrs</span>
+              </div>
+              <Progress value={85} className="h-2" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Completed Service Item Component
+const CompletedServiceItem: React.FC<{
+  booking: Booking;
+  onViewDetails: (booking: Booking) => void;
+}> = ({ booking, onViewDetails }) => {
+  const serviceType = booking.addresses?.from ? 'Moving Service' : 'Other Service';
+  const estimatedRevenue = booking.addresses?.from ? 150 : 100;
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-green-100 rounded-lg">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+        </div>
+        <div>
+          <p className="font-medium">
+            {booking.contact?.name || 'Customer'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {serviceType} • {new Date(booking.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-green-600">
+          ${estimatedRevenue}
+        </Badge>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onViewDetails(booking)}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Pending Request Item Component
+const PendingRequestItem: React.FC<{
+  booking: Booking;
+  onApprove: (bookingId: string) => void;
+  onReject: (bookingId: string) => void;
+  onChatClick: (bookingId: string) => void;
+}> = ({ booking, onApprove, onReject, onChatClick }) => (
+  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+    <div className="flex items-center gap-3">
+      <StatusIcon status={booking.status} />
+      <div>
+        <p className="font-medium">
+          {booking.contact?.name || 'Customer'}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {booking.addresses?.from || 'Moving service'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {new Date(booking.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <StatusBadge status={booking.status} />
+      <div className="flex gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onChatClick(booking.id)}
+          className="h-8 w-8 p-0"
+        >
+          <MessageCircle className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onApprove(booking.id)}
+          className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+        >
+          <CheckCircle className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onReject(booking.id)}
+          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <XCircle className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  </div>
+);
+
+// Recent Activity Component
+const RecentActivity: React.FC<{
+  bookings: Booking[];
+  onViewDetails: (booking: Booking) => void;
+  onApprove: (bookingId: string) => void;
+  onReject: (bookingId: string) => void;
+  onChatClick: (bookingId: string) => void;
+}> = ({ bookings, onViewDetails, onApprove, onReject, onChatClick }) => (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    {/* Completed Services */}
+    <Card className="shadow-xl">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5" />
+          Recent Completed Services
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-96">
+          <div className="space-y-4">
+            {bookings
+              .filter(booking => booking.status === 'completed')
+              .slice(0, 5)
+              .map((booking) => (
+                <CompletedServiceItem
+                  key={booking.id}
+                  booking={booking}
+                  onViewDetails={onViewDetails}
+                />
+              ))}
+            {bookings.filter(b => b.status === 'completed').length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No completed services yet</p>
+                <p className="text-sm">Completed services will appear here</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+
+    {/* Pending Requests */}
+    <Card className="shadow-xl">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Pending Requests
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-96">
+          <div className="space-y-4">
+            {bookings
+              .filter(booking => booking.status === 'pending')
+              .slice(0, 5)
+              .map((booking) => (
+                <PendingRequestItem
+                  key={booking.id}
+                  booking={booking}
+                  onApprove={onApprove}
+                  onReject={onReject}
+                  onChatClick={onChatClick}
+                />
+              ))}
+            {bookings.filter(b => b.status === 'pending').length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No pending requests</p>
+                <p className="text-sm">All caught up!</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  </div>
+);
+
+// Main Dashboard Component
 const CompanyDashboard: React.FC = () => {
-  const [user, setUser] = useState<any>(() => {
+  // State management
+  const [user, setUser] = useState<User | null>(() => {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   });
+  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [activeChatRoom, setActiveChatRoom] = useState<ChatRoom | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showInvoiceDetails, setShowInvoiceDetails] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useQuery(COMPANY_BOOKINGS_QUERY, { fetchPolicy: 'network-only' });
-  const requests = data?.companyBookings || [];
-  const [approveBooking] = useMutation(COMPANY_APPROVE_BOOKING_MUTATION);
-  const [rejectBooking] = useMutation(COMPANY_REJECT_BOOKING_MUTATION);
 
-  const handleRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
-    try {
-      if (action === 'approve') {
-        await approveBooking({ variables: { id: requestId } });
-      } else {
-        await rejectBooking({ variables: { id: requestId } });
-      }
-      // Refetch the data to show updated status
-      refetch();
-    } catch (error: any) {
-      console.error('Error updating booking status:', error);
-      // You could add a toast notification here
-    }
-  };
+  // GraphQL queries and mutations
+  const { data: bookingsData, loading: bookingsLoading, error: bookingsError } = useQuery(COMPANY_BOOKINGS_QUERY);
+  const { data: chatRoomsData, loading: chatRoomsLoading } = useQuery(GET_COMPANY_CHAT_ROOMS);
+  const { data: invoiceData, loading: invoiceLoading } = useQuery(GET_COMPANY_INVOICES);
+  const [companyApproveBooking] = useMutation(COMPANY_APPROVE_BOOKING_MUTATION);
+  const [companyRejectBooking] = useMutation(COMPANY_REJECT_BOOKING_MUTATION);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case 'accepted': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'completed': return <CheckCircle className="h-4 w-4 text-blue-500" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
+  // Data processing
+  const bookings: Booking[] = bookingsData?.companyBookings || [];
+  const chatRooms: ChatRoom[] = chatRoomsData?.companyChatRooms || [];
+  const invoices: Invoice[] = invoiceData?.companyQuoteDocuments || [];
+  const currentActiveChatRoom = activeChat ? chatRooms.find((room) => room.bookingId === activeChat) || null : null;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'yellow';
-      case 'accepted': return 'green';
-      case 'rejected': return 'red';
-      case 'completed': return 'blue';
-      default: return 'gray';
-    }
-  };
-
-  const stats = {
-    totalRequests: requests.length,
-    pendingRequests: requests.filter(r => r.status === 'pending').length,
-    acceptedRequests: requests.filter(r => r.status === 'accepted').length,
-    completedRequests: requests.filter(r => r.status === 'completed').length,
+  // Calculate stats
+  const stats: DashboardStats = {
+    totalRequests: bookings.length,
+    pendingRequests: bookings.filter(r => r.status === 'pending').length,
+    acceptedRequests: bookings.filter(r => r.status === 'accepted').length,
+    completedRequests: bookings.filter(r => r.status === 'completed').length,
     rating: 4.8,
     totalReviews: 127,
     monthlyRevenue: 12450,
     responseTime: '2.3 hrs'
   };
 
-  const recentMetrics = [
-    { label: 'This Week', bookings: 23, revenue: 3200, growth: '+15%' },
-    { label: 'This Month', bookings: 89, revenue: 12450, growth: '+28%' },
-    { label: 'Quarter', bookings: 245, revenue: 34200, growth: '+18%' }
-  ];
+  // Event handlers
+  const handleRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') {
+        await companyApproveBooking({ variables: { id: requestId } });
+      } else {
+        await companyRejectBooking({ variables: { id: requestId } });
+      }
+    } catch (error: any) {
+      console.error('Error updating booking status:', error);
+    }
+  };
 
-  return (
-    <div className="relative">
+  const handleApproveRequest = (bookingId: string) => {
+    handleRequestAction(bookingId, 'approve');
+  };
+
+  const handleRejectRequest = (bookingId: string) => {
+    handleRequestAction(bookingId, 'reject');
+  };
+
+  const handleChatWithCustomer = (bookingId: string) => {
+    setActiveChat(bookingId);
+    setShowChat(true);
+  };
+
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setActiveChat(null);
+  };
+
+  const handleViewInvoiceDetails = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setShowInvoiceDetails(true);
+  };
+
+  const handleCloseInvoiceDetails = () => {
+    setShowInvoiceDetails(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleViewServiceDetails = (booking: Booking) => {
+    // This could open a modal with detailed service information
+    console.log('View service details:', booking);
+  };
+
+  // Loading states
+  if (bookingsLoading || chatRoomsLoading || invoiceLoading) {
+    return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Enhanced Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 bg-gradient-to-r from-primary to-blue-600">
-                <AvatarFallback className="bg-transparent text-white text-xl font-bold">
-                  {user?.full_name?.charAt(0) || 'C'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                  Welcome back, {user?.full_name || 'Company'}
-                </h1>
-                <p className="text-muted-foreground text-lg mt-1">
-                  Manage your business operations and grow your success
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export Report
-              </Button>
-            </div>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
           </div>
-
-          {/* Enhanced Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl transform hover:scale-105 transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 font-medium">Total Requests</p>
-                    <p className="text-3xl font-bold mt-2">{stats.totalRequests}</p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm">All time</span>
-                    </div>
-                  </div>
-                  <Users className="h-12 w-12 text-blue-200" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-xl transform hover:scale-105 transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-amber-100 font-medium">Pending</p>
-                    <p className="text-3xl font-bold mt-2">{stats.pendingRequests}</p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-sm">Needs attention</span>
-                    </div>
-                  </div>
-                  <AlertCircle className="h-12 w-12 text-amber-200" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-emerald-500 to-green-600 text-white border-0 shadow-xl transform hover:scale-105 transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-emerald-100 font-medium">Completed</p>
-                    <p className="text-3xl font-bold mt-2">{stats.completedRequests}</p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <CheckCircle className="h-4 w-4" />
-                      <span className="text-sm">Success rate: 94%</span>
-                    </div>
-                  </div>
-                  <CheckCircle className="h-12 w-12 text-emerald-200" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-xl transform hover:scale-105 transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 font-medium">Rating</p>
-                    <p className="text-3xl font-bold mt-2 flex items-center gap-2">
-                      {stats.rating}
-                      <Star className="h-6 w-6 text-yellow-400 fill-current" />
-                    </p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Award className="h-4 w-4" />
-                      <span className="text-sm">{stats.totalReviews} reviews</span>
-                    </div>
-                  </div>
-                  <Star className="h-12 w-12 text-purple-200" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {recentMetrics.map((metric, index) => (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-shadow duration-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg">{metric.label}</h3>
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                      {metric.growth}
-                    </Badge>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Bookings</span>
-                      <span className="font-bold text-xl">{metric.bookings}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Revenue</span>
-                      <span className="font-bold text-xl text-green-600">${metric.revenue.toLocaleString()}</span>
-                    </div>
-                    <Progress value={Math.min((metric.bookings / 100) * 100, 100)} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Main Content Tabs */}
-          <Tabs defaultValue="requests" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-              <TabsTrigger value="requests" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Service Requests
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger value="performance" className="gap-2">
-                <Target className="h-4 w-4" />
-                Performance
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="gap-2">
-                <Building2 className="h-4 w-4" />
-                Profile
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="requests" className="space-y-4">
-              <Card className="shadow-lg">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Service Requests
-                    </CardTitle>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filter
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {requests.map((request) => (
-                      <Card key={request.id} className="border-l-4 border-l-primary bg-gradient-to-r from-white to-gray-50 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-4">
-                                <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
-                                  <AvatarFallback>
-                                    {request.contact?.name?.charAt(0) || 'U'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <h3 className="font-semibold text-lg">{request.contact?.name || 'Unknown Customer'}</h3>
-                                  <Badge variant="outline" className={`text-${getStatusColor(request.status)}-600`}>
-                                    {getStatusIcon(request.status)}
-                                    {request.status}
-                                  </Badge>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Mail className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">Email:</span>
-                                    <span>{request.contact?.email || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Phone className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">Phone:</span>
-                                    <span>{request.contact?.phone || 'N/A'}</span>
-                                  </div>
-                                </div>
-                                
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">From:</span>
-                                    <span className="truncate">{request.addresses?.from || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">To:</span>
-                                    <span className="truncate">{request.addresses?.to || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">Date:</span>
-                                    <span>
-                                      {request.dateTime ? new Date(request.dateTime).toLocaleDateString() : 
-                                       request.dateTimeFlexible ? 'Flexible' : 'N/A'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {request.contact?.notes && (
-                                <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-l-blue-500 mb-4">
-                                  <p className="text-sm">
-                                    <strong className="text-blue-700">Notes:</strong> {request.contact.notes}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-col gap-2">
-                              {request.status === 'pending' && (
-                                <>
-                                  <Button
-                                    onClick={() => handleRequestAction(request.id, 'approve')}
-                                    className="bg-green-600 hover:bg-green-700 gap-2"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                    Accept
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleRequestAction(request.id, 'reject')}
-                                    className="border-red-200 text-red-600 hover:bg-red-50 gap-2"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                    Reject
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {request.status === 'accepted' && (
-                                <Button
-                                  className="gap-2 bg-gradient-to-r from-primary to-blue-600"
-                                >
-                                  <MessageCircle className="h-4 w-4" />
-                                  Chat with Customer
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    
-                    {requests.length === 0 && (
-                      <div className="text-center py-12">
-                        <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No service requests yet</h3>
-                        <p className="text-muted-foreground">When customers request your services, they'll appear here.</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="analytics">
-              <Card className="shadow-lg">
-                <CardContent className="p-8">
-                  <div className="text-center py-12">
-                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-2xl font-semibold mb-4">Business Analytics</h3>
-                    <p className="text-muted-foreground text-lg mb-6">
-                      Get insights into your business performance, revenue trends, and customer satisfaction.
-                    </p>
-                    <Button className="gap-2 bg-gradient-to-r from-primary to-blue-600">
-                      <TrendingUp className="h-4 w-4" />
-                      View Detailed Analytics
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="performance">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5" />
-                      Key Metrics
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Customer Satisfaction</span>
-                        <span className="font-semibold">96%</span>
-                      </div>
-                      <Progress value={96} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Response Time</span>
-                        <span className="font-semibold">2.3 hrs</span>
-                      </div>
-                      <Progress value={85} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Completion Rate</span>
-                        <span className="font-semibold">94%</span>
-                      </div>
-                      <Progress value={94} />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Revenue Overview
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <p className="text-3xl font-bold text-green-600">${stats.monthlyRevenue.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">This month</p>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Average per booking</span>
-                          <span className="font-medium">$140</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Growth rate</span>
-                          <span className="font-medium text-green-600">+28%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="profile">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Company Profile</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-semibold mb-2">Company Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Name</p>
-                          <p className="font-medium">{user?.full_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium">{user?.email}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Location</p>
-                          <p className="font-medium">{user?.location || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{user?.phone || 'Not specified'}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-semibold mb-2">Services</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {user?.services?.map((service: string) => (
-                          <Badge key={service} variant="secondary">{service}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-muted-foreground">{user?.description || 'No description provided'}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
         </div>
       </div>
-      <ChatBot userType="company" />
-    </div>
+    );
+  }
+
+  // Error states
+  if (bookingsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Error loading data</h3>
+            <p className="text-muted-foreground">{bookingsError.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {showChat && currentActiveChatRoom ? (
+        <ChatInterface
+          activeChat={activeChat || ''}
+          currentActiveChatRoom={currentActiveChatRoom}
+          onCloseChat={handleCloseChat}
+        />
+      ) : (
+        <div className="relative">
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+              <DashboardHeader user={user} />
+              <StatsGrid stats={stats} />
+
+              {/* Service Analytics */}
+              <ServiceAnalytics bookings={bookings} invoices={invoices} />
+
+              {/* Recent Activity */}
+              <RecentActivity 
+                bookings={bookings}
+                onViewDetails={handleViewServiceDetails}
+                onApprove={handleApproveRequest}
+                onReject={handleRejectRequest}
+                onChatClick={handleChatWithCustomer}
+              />
+
+              {/* Invoices Section */}
+              <Card className="shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Recent Invoices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {invoices.slice(0, 3).map((invoice) => (
+                      <InvoiceItem
+                        key={invoice.id}
+                        invoice={invoice}
+                        onViewDetails={handleViewInvoiceDetails}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Details Modal */}
+      <Dialog open={showInvoiceDetails} onOpenChange={setShowInvoiceDetails}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Invoice Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="space-y-6">
+              {/* Invoice Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-blue-900">
+                      Invoice #{selectedInvoice.id.slice(-8)}
+                    </h3>
+                    <p className="text-sm text-blue-600">
+                      Generated on {new Date(selectedInvoice.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-green-600">
+                      ${selectedInvoice.amount?.toLocaleString()}
+                    </p>
+                    <Badge variant="default" className="mt-1">
+                      {selectedInvoice.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Details */}
+              {selectedInvoice.bookingDetails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Booking Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto">
+                      {JSON.stringify(selectedInvoice.bookingDetails, null, 2)}
+                    </pre>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

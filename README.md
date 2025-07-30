@@ -1,83 +1,96 @@
-# LocalEase Service Hub
+# Localease Service Hub
 
-## Backend Architecture (Updated)
-- **Backend:** Node.js with Express.js
-- **Authentication:** JWT (JSON Web Token) based authentication
-- **Database:** MongoDB (via Mongoose)
-- **Password Hashing:** bcryptjs
-- **CORS:** Enabled for frontend-backend communication
-- **Supabase:** All Supabase dependencies have been removed
+A comprehensive service booking platform for moving, disposal, and transport services.
 
-# Welcome to your Lovable project
+## Features
 
-## Project info
+- **Multi-service Booking**: Moving, disposal, and transport services
+- **Real-time Chat**: Live messaging between users and companies
+- **Quote Management**: Send and accept quotes with document generation
+- **Company Dashboard**: Comprehensive dashboard for service providers
+- **Google Maps Integration**: Address autocomplete and location selection
+- **Multi-language Support**: Internationalization support
+- **Responsive Design**: Mobile-first approach
 
-**URL**: https://lovable.dev/projects/bf8ac498-c1fd-4d52-abae-27cb69e45448
+## Setup
 
-## How can I edit this code?
+### Prerequisites
 
-There are several ways of editing your application.
+- Node.js (v16 or higher)
+- MongoDB
+- Google Maps API Key
 
-**Use Lovable**
+### Installation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/bf8ac498-c1fd-4d52-abae-27cb69e45448) and start prompting.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd localease-service-hub
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+2. Install dependencies:
+```bash
+npm install
+```
 
-**Use your preferred IDE**
+3. Set up environment variables:
+Create a `.env` file in the root directory with the following variables:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```env
+# Google Maps API Key (Required for location selection)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Other environment variables as needed
+```
 
-Follow these steps:
+### Google Maps Setup
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the following APIs:
+   - Maps JavaScript API
+   - Places API
+4. Create credentials (API Key)
+5. Add the API key to your `.env` file as `VITE_GOOGLE_MAPS_API_KEY`
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Running the Application
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Start the backend server:
+```bash
+cd backend
+npm start
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. Start the frontend development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+3. Open your browser and navigate to `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Real-time Chat
 
-**Use GitHub Codespaces**
+The application features real-time chat functionality using:
+- WebSocket connections for live messaging
+- GraphQL subscriptions for real-time updates
+- Message read status tracking
+- Quote sending and acceptance
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Google Maps Integration
 
-## What technologies are used for this project?
+Location selection throughout the application uses Google Maps for:
+- Address autocomplete
+- Precise location coordinates
+- Address validation
+- Enhanced user experience
 
-This project is built with:
+## Contributing
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## How can I deploy this project?
+## License
 
-Simply open [Lovable](https://lovable.dev/projects/bf8ac498-c1fd-4d52-abae-27cb69e45448) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is licensed under the MIT License.

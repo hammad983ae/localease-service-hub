@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Calendar, User, HelpCircle, MessageCircle } from 'lucide-react';
+import { Home, Calendar, User, HelpCircle, MessageCircle, FileText } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,9 @@ const BottomNavigation: React.FC = () => {
   const navItems = [
     { path: '/home', icon: Home, label: t('nav.home') }, // Fixed: changed from '/' to '/home'
     { path: '/bookings', icon: Calendar, label: t('nav.bookings') },
-    { path: '/profile', icon: User, label: t('nav.profile') },
+      { path: '/chats', icon: MessageCircle, label: t('nav.chats') },
+  { path: '/quotes', icon: FileText, label: t('nav.quotes') },
+  { path: '/profile', icon: User, label: t('nav.profile') },
     { path: '/support', icon: HelpCircle, label: t('nav.support') },
   ];
 

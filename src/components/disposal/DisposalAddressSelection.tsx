@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin } from 'lucide-react';
+import GoogleMaps from '@/components/ui/google-maps';
 
 interface DisposalAddressSelectionProps {
   data: {
@@ -32,6 +32,25 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
     onUpdate(updatedAddress);
   };
 
+  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    console.log('Location selected:', location);
+    
+    // Parse the address into components
+    const addressParts = location.address.split(',').map(part => part.trim());
+    
+    // Simple parsing - in a real app, you'd want more sophisticated parsing
+    const updatedAddress = {
+      ...data,
+      street: addressParts[0] || '',
+      city: addressParts[1] || '',
+      state: addressParts[2] || '',
+      zipCode: addressParts[3] || '',
+      fullAddress: location.address
+    };
+    
+    onUpdate(updatedAddress);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -43,53 +62,46 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="street">Street Address</Label>
-            <Input
-              id="street"
-              placeholder="Enter street address"
-              value={data.street}
-              onChange={(e) => handleChange('street', e.target.value)}
+            <Label htmlFor="fullAddress">Full Address (Google Maps Autocomplete)</Label>
+            <GoogleMaps
+              placeholder="Enter pickup address"
+              value={data.fullAddress}
+              onChange={(value) => handleChange('fullAddress', value)}
+              onLocationSelect={handleLocationSelect}
             />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="city">City</Label>
-              <Input
+              <input
                 id="city"
                 placeholder="City"
                 value={data.city}
                 onChange={(e) => handleChange('city', e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
               />
             </div>
             <div>
               <Label htmlFor="state">State</Label>
-              <Input
+              <input
                 id="state"
                 placeholder="State"
                 value={data.state}
                 onChange={(e) => handleChange('state', e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
               />
             </div>
             <div>
               <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input
+              <input
                 id="zipCode"
                 placeholder="ZIP Code"
                 value={data.zipCode}
                 onChange={(e) => handleChange('zipCode', e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
               />
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="fullAddress">Full Address</Label>
-            <Input
-              id="fullAddress"
-              placeholder="Full address will be auto-generated"
-              value={data.fullAddress}
-              onChange={(e) => handleChange('fullAddress', e.target.value)}
-            />
           </div>
         </CardContent>
       </Card>
@@ -99,6 +111,7 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
           <div className="text-center text-muted-foreground">
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Interactive map will show here</p>
+            <p className="text-xs">Use the address input above for Google Maps autocomplete</p>
           </div>
         </div>
       </div>

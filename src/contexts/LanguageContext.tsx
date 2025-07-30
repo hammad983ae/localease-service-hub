@@ -14,6 +14,8 @@ const translations = {
     // Navigation
     'nav.home': 'Home',
     'nav.bookings': 'Bookings',
+    'nav.chats': 'Chats',
+    'nav.quotes': 'Quotes',
     'nav.profile': 'Profile',
     'nav.support': 'Support',
     

@@ -152,7 +152,9 @@ const typeDefs = gql`
     bookingId: ID!
     bookingType: String!
     userId: ID!
-    companyId: ID!
+    companyId: ID
+    adminId: ID
+    chatType: String!
     isActive: Boolean!
     createdAt: Date
     updatedAt: Date
@@ -167,17 +169,62 @@ const typeDefs = gql`
     messageType: String!
     isRead: Boolean!
     createdAt: Date
+    quote: Quote
+  }
+
+  type Quote {
+    id: ID!
+    chatRoomId: ID!
+    amount: Float!
+    currency: String!
+    status: String!
+    counterOffer: Float
+    createdAt: Date
+  }
+
+  type QuoteDocument {
+    id: ID!
+    bookingId: ID!
+    companyId: ID!
+    createdBy: String!
+    amount: Float!
+    currency: String!
+    status: String!
+    documentUrl: String
+    bookingDetails: JSON
+    createdAt: Date
+  }
+
+  type AdminStats {
+    totalUsers: Int!
+    activeCompanies: Int!
+    totalBookings: Int!
+    totalRevenue: Float!
+    monthlyRevenue: Float!
+    growthRate: Float!
+    pendingApprovals: Int!
+    totalInvoices: Int!
+    averageBookingValue: Float!
+    userSatisfaction: Float!
+    responseTime: Float!
+    completionRate: Float!
   }
 
   type Query {
     me: User
     myProfile: UserProfile
+    user(id: ID!): User
+    userProfile(userId: ID!): UserProfile
+    company(id: ID!): Company
     myBookings: [MovingBooking]
     myDisposalBookings: [DisposalBooking]
     myTransportBookings: [TransportBooking]
     booking(id: ID!): MovingBooking
     disposalBooking(id: ID!): DisposalBooking
     transportBooking(id: ID!): TransportBooking
+    bookingById(id: ID!): MovingBooking
+    disposalBookingById(id: ID!): DisposalBooking
+    transportBookingById(id: ID!): TransportBooking
     allBookings: [MovingBooking]
     allDisposalBookings: [DisposalBooking]
     allTransportBookings: [TransportBooking]
@@ -193,8 +240,21 @@ const typeDefs = gql`
     companyTransportBookings: [TransportBooking]
     myChatRooms: [ChatRoom]
     companyChatRooms: [ChatRoom]
+    adminChatRooms: [ChatRoom]
     chatRoom(id: ID!): ChatRoom
     chatMessages(chatRoomId: ID!): [Message]
+    myQuoteDocuments: [QuoteDocument]
+    companyQuoteDocuments: [QuoteDocument]
+    allQuoteDocuments: [QuoteDocument]
+    quoteDocument(id: ID!): QuoteDocument
+    
+    # Admin Analytics queries
+    adminStats: AdminStats
+    adminUsers: [User]
+    adminCompanies: [Company]
+    adminBookings: [MovingBooking]
+    adminDisposalBookings: [DisposalBooking]
+    adminTransportBookings: [TransportBooking]
   }
 
   type Mutation {
@@ -244,8 +304,15 @@ const typeDefs = gql`
     companyRejectTransportBooking(id: ID!): TransportBooking
     createCompanyProfile(name: String!, email: String!, phone: String, address: String, description: String, services: [String!], priceRange: String, companyType: String): Company
     createChatRoom(bookingId: ID!, bookingType: String!): ChatRoom
+    createAdminChatRoom(bookingId: ID!, bookingType: String!): ChatRoom
     sendMessage(chatRoomId: ID!, content: String!, messageType: String): Message
+    sendAdminMessage(chatRoomId: ID!, content: String!, messageType: String): Message
+    generateInvoice(bookingId: ID!, companyId: ID!, amount: Float!): QuoteDocument
+    createInvoice(bookingId: ID!, companyId: ID!, amount: Float!): QuoteDocument
     markMessageAsRead(messageId: ID!): Message
+    sendQuote(chatRoomId: ID!, amount: Float!, currency: String!): Message
+    respondToQuote(quoteId: ID!, response: String!, counterOffer: Float): Message
+    generateQuoteDocument(bookingId: ID!, finalAmount: Float!, currency: String!): QuoteDocument
   }
 
   type Subscription {

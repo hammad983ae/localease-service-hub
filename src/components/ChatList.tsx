@@ -29,6 +29,24 @@ const GET_MY_CHAT_ROOMS = gql`
       bookingType
       userId
       companyId
+      adminId
+      chatType
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const GET_ADMIN_CHAT_ROOMS = gql`
+  query AdminChatRooms {
+    adminChatRooms {
+      id
+      bookingId
+      bookingType
+      userId
+      adminId
+      chatType
       isActive
       createdAt
       updatedAt
@@ -91,13 +109,19 @@ interface ChatRoom {
   bookingId: string;
   bookingType: string;
   userId: string;
-  companyId: string;
+  companyId?: string;
+  adminId?: string;
+  chatType: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-const ChatList: React.FC = () => {
+interface ChatListProps {
+  initialBookingId?: string | null;
+}
+
+const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   const { user } = useAuth();
   const { markAsRead, unreadChats } = useNotifications();
   const [selectedChatRoom, setSelectedChatRoom] = useState<string | null>(null);
@@ -105,11 +129,36 @@ const ChatList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const isCompany = user?.role === 'company';
+  const isAdmin = user?.role === 'admin';
+  
   const { data, loading, error } = useQuery(
     isCompany ? GET_COMPANY_CHAT_ROOMS : GET_MY_CHAT_ROOMS
   );
 
+  const { data: adminChatData, loading: adminChatLoading } = useQuery(
+    GET_ADMIN_CHAT_ROOMS,
+    { skip: isCompany || isAdmin }
+  );
+
   const chatRooms = data?.myChatRooms || data?.companyChatRooms || [];
+  const adminChatRooms = adminChatData?.adminChatRooms || [];
+  
+  // Combine regular chat rooms with admin chat rooms for users
+  const allChatRooms = isCompany || isAdmin ? chatRooms : [...chatRooms, ...adminChatRooms];
+
+  // Auto-open chat for specific booking if initialBookingId is provided
+  React.useEffect(() => {
+    if (initialBookingId && allChatRooms.length > 0) {
+      const targetChatRoom = allChatRooms.find((chatRoom: ChatRoom) => 
+        chatRoom.bookingId === initialBookingId
+      );
+      if (targetChatRoom) {
+        setSelectedChatRoom(targetChatRoom.id);
+        setShowChat(true);
+        markAsRead(targetChatRoom.id);
+      }
+    }
+  }, [initialBookingId, allChatRooms, markAsRead]);
 
   const handleChatRoomClick = (chatRoomId: string) => {
     setSelectedChatRoom(chatRoomId);
@@ -160,7 +209,7 @@ const ChatList: React.FC = () => {
     }
   };
 
-  const filteredChatRooms = chatRooms.filter((chatRoom: ChatRoom) => {
+  const filteredChatRooms = allChatRooms.filter((chatRoom: ChatRoom) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -169,7 +218,7 @@ const ChatList: React.FC = () => {
     );
   });
 
-  if (loading) {
+  if (loading || adminChatLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">Loading chat rooms...</div>
@@ -214,7 +263,7 @@ const ChatList: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-sm">
-            {chatRooms.length} {chatRooms.length === 1 ? 'chat' : 'chats'}
+            {allChatRooms.length} {allChatRooms.length === 1 ? 'chat' : 'chats'}
           </Badge>
           <Button variant="outline" size="sm" className="gap-2">
             <Filter className="h-4 w-4" />
@@ -235,7 +284,7 @@ const ChatList: React.FC = () => {
         />
       </div>
 
-      {chatRooms.length === 0 ? (
+      {allChatRooms.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="relative">
@@ -285,17 +334,22 @@ const ChatList: React.FC = () => {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg truncate">
-                            {getBookingTypeLabel(chatRoom.bookingType)}
+                          <h3 className="font-semibold">
+                            {chatRoom.bookingType === 'moving' ? 'Moving Service' :
+                             chatRoom.bookingType === 'disposal' ? 'Disposal Service' :
+                             'Transport Service'}
+                            {chatRoom.chatType === 'admin_user' && (
+                              <Badge variant="secondary" className="ml-2 text-xs">
+                                Admin Support
+                              </Badge>
+                            )}
                           </h3>
-                          <Badge variant="outline" className="shrink-0">
-                            {chatRoom.bookingType}
-                          </Badge>
-                          {isUnread && (
-                            <Badge className="bg-red-500 text-white text-xs">
-                              New
-                            </Badge>
-                          )}
+                          <p className="text-sm text-muted-foreground">
+                            Booking #{chatRoom.bookingId}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(chatRoom.updatedAt)}
+                          </p>
                         </div>
                         
                         <div className="space-y-1 text-sm text-muted-foreground">

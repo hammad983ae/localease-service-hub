@@ -3,9 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { gql, useQuery, useMutation } from '@apollo/client';
-import { Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X } from 'lucide-react';
+import { Mail, Phone, MapPin, Settings, LogOut, Edit2, Save, X, FileText, DollarSign, Calendar } from 'lucide-react';
+import QuoteDocuments from '@/components/QuoteDocuments';
 
 const MY_PROFILE_QUERY = gql`
   query MyProfile {
@@ -86,110 +89,103 @@ const Profile: React.FC = () => {
         <h1 className="text-2xl font-bold text-foreground">Profile</h1>
         <p className="text-muted-foreground">Hi {firstName}, manage your account information</p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Profile Info Card */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-3 rounded-full bg-blue-50">
-                  <Mail className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Personal Information</CardTitle>
-                  <p className="text-sm text-muted-foreground">Update your personal details</p>
-                </div>
-              </div>
-              {!isEditing ? (
-                <Button variant="outline" size="sm" onClick={handleEdit}>
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={handleCancel}>
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
+      
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Profile Info Card */}
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 rounded-full bg-blue-50">
+                      <Mail className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Personal Information</CardTitle>
+                      <p className="text-sm text-muted-foreground">Update your personal details</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={isEditing ? handleCancel : handleEdit}
+                    className="gap-2"
+                  >
+                    {isEditing ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+                    {isEditing ? 'Cancel' : 'Edit'}
                   </Button>
-                  <Button size="sm" onClick={handleSave}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
                 </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={e => setFormData({ ...formData, full_name: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your full name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your phone number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your address"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Account Actions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 rounded-full bg-gray-50">
-                <Settings className="h-6 w-6 text-gray-600" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Account Actions</CardTitle>
-                <p className="text-sm text-muted-foreground">Manage your account settings</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={signOut} className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
-        {/* Account Info */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-medium text-foreground mb-2">Account Information</h3>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>• Your data is securely stored and encrypted</p>
-              <p>• You can update your information at any time</p>
-              <p>• Contact support if you need help with your account</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="mt-6">
-        {success && <div className="text-green-600 text-sm mt-2">{success}</div>}
-        {errMsg && <div className="text-red-600 text-sm mt-2">{errMsg}</div>}
-      </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {success && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-green-700 text-sm">{success}</p>
+                  </div>
+                )}
+                {errMsg && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-red-700 text-sm">{errMsg}</p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Full Name</Label>
+                    <Input
+                      id="full_name"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder="Enter your address"
+                    />
+                  </div>
+                </div>
+                
+                {isEditing && (
+                  <div className="flex justify-end space-x-2">
+                    <Button onClick={handleSave} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      Save Changes
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="invoices">
+          <QuoteDocuments />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

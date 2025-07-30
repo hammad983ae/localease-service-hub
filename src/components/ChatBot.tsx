@@ -27,7 +27,7 @@ interface Message {
 }
 
 interface ChatBotProps {
-  userType: 'customer' | 'company';
+  userType: 'customer' | 'company' | 'admin';
 }
 
 const ChatBot: React.FC<ChatBotProps> = ({ userType }) => {
@@ -36,7 +36,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ userType }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: `Hi! I'm your LocalEase assistant. How can I help you ${userType === 'company' ? 'manage your business' : 'find the perfect service'} today?`,
+      text: `Hi! I'm your LocalEase assistant. How can I help you ${
+        userType === 'company' ? 'manage your business' : 
+        userType === 'admin' ? 'manage the platform' : 
+        'find the perfect service'
+      } today?`,
       sender: 'bot',
       timestamp: new Date()
     }
@@ -69,6 +73,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ userType }) => {
           "Would you like me to show you recent customer inquiries or help optimize your service offerings?",
           "I can assist with scheduling, customer communication, or business analytics. What would be most helpful?",
           "Let me help you streamline your operations. Are you looking to improve efficiency or expand your services?"
+        ]
+      : userType === 'admin'
+      ? [
+          "I can help you manage the platform, review bookings, and provide customer support.",
+          "Would you like me to show you recent bookings that need approval or help with user management?",
+          "I can assist with platform analytics, user support, or system administration. What would be most helpful?",
+          "Let me help you maintain platform quality. Are you looking to review bookings or assist users?"
         ]
       : [
           "I'm here to help you find the perfect service for your needs! What type of service are you looking for?",

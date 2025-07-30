@@ -1,22 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MapPin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MapPin, Plus } from 'lucide-react';
+import GoogleMaps from '@/components/ui/google-maps';
 
 interface Address {
   id: string;
   label: string;
   address: string;
-  isDefault: boolean;
 }
 
 interface EnhancedAddressSelectionProps {
-  data: { from: string; to: string };
+  data: {
+    from: string;
+    to: string;
+  };
   onUpdate: (addresses: { from: string; to: string }) => void;
 }
 
@@ -56,14 +58,25 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     }
   };
 
+  const handleFromLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    console.log('From location selected:', location);
+    handleFromChange(location.address, 'custom');
+  };
+
+  const handleToLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    console.log('To location selected:', location);
+    handleToChange(location.address, 'custom');
+  };
+
   const AddressInput = ({ 
     label, 
     value, 
     onChange, 
-    type, 
+    type,
     onTypeChange, 
     placeholder, 
-    color 
+    color,
+    onLocationSelect
   }: {
     label: string;
     value: string;
@@ -72,6 +85,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     onTypeChange: (type: 'saved' | 'custom') => void;
     placeholder: string;
     color: string;
+    onLocationSelect: (location: { address: string; lat: number; lng: number }) => void;
   }) => (
     <Card>
       <CardContent className="p-6">
@@ -99,7 +113,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
             </Button>
           </div>
           
-          {type === 'saved' && savedAddresses.length > 0 ? (
+          {type === 'saved' && savedAddresses.length > 0 ?
             <Select onValueChange={(value) => onChange(value, 'saved')}>
               <SelectTrigger className="text-base">
                 <SelectValue placeholder="Select saved address" />
@@ -116,10 +130,11 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
               </SelectContent>
             </Select>
           ) : (
-            <Input
+            <GoogleMaps
               placeholder={placeholder}
               value={value}
-              onChange={(e) => onChange(e.target.value, 'custom')}
+              onChange={(value) => onChange(value, 'custom')}
+              onLocationSelect={onLocationSelect}
               className="text-base"
             />
           )}
@@ -145,6 +160,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
         onTypeChange={setFromType}
         placeholder="Enter pickup address"
         color="text-green-600"
+        onLocationSelect={handleFromLocationSelect}
       />
 
       <AddressInput
@@ -155,6 +171,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
         onTypeChange={setToType}
         placeholder="Enter destination address"
         color="text-red-600"
+        onLocationSelect={handleToLocationSelect}
       />
 
       <div className="bg-muted rounded-lg p-4">
@@ -162,6 +179,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
           <div className="text-center text-muted-foreground">
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Interactive map will show here</p>
+            <p className="text-xs">Use the address inputs above for Google Maps autocomplete</p>
           </div>
         </div>
       </div>
