@@ -8,8 +8,12 @@ export default defineConfig(async ({ mode }) => {
   const plugins = [react()];
   
   if (mode === 'development') {
-    const { componentTagger } = await import("lovable-tagger");
-    plugins.push(componentTagger());
+    try {
+      const { componentTagger } = await import("lovable-tagger");
+      plugins.push(componentTagger());
+    } catch (error) {
+      console.warn('Failed to load lovable-tagger:', error);
+    }
   }
   
   return {
