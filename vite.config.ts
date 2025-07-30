@@ -6,13 +6,13 @@ import path from "path";
 export default defineConfig(async ({ command, mode }) => {
   const plugins = [react()];
   
-  try {
-    if (command === 'serve') {
+  if (command === 'serve') {
+    try {
       const { componentTagger } = await import('@lovable/vite-plugin-component-tagger');
-      plugins.push(componentTagger() as any);
+      plugins.push(componentTagger());
+    } catch (error) {
+      console.warn('Component tagger plugin not available:', error);
     }
-  } catch (error) {
-    console.warn('Component tagger plugin not available:', error);
   }
 
   return {
