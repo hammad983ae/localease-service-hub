@@ -10,12 +10,11 @@ export default defineConfig(async ({ command, mode }) => {
   // Only try to load component tagger in development mode
   if (command === 'serve') {
     try {
-      const componentTagger = await import('@lovable/vite-plugin-component-tagger').then(
-        (module) => module.componentTagger
-      ).catch(() => null);
+      // Try to dynamically import the component tagger plugin
+      const module = await import('@lovable/vite-plugin-component-tagger').catch(() => null);
       
-      if (componentTagger) {
-        plugins.push(componentTagger());
+      if (module && module.componentTagger) {
+        plugins.push(module.componentTagger());
       }
     } catch (error) {
       // Silently ignore if plugin is not available
