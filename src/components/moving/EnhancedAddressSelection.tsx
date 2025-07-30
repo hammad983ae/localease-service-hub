@@ -68,16 +68,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     handleToChange(location.address, 'custom');
   };
 
-  const AddressInput = ({ 
-    label, 
-    value, 
-    onChange, 
-    type,
-    onTypeChange, 
-    placeholder, 
-    color,
-    onLocationSelect
-  }: {
+  interface AddressInputProps {
     label: string;
     value: string;
     onChange: (value: string, type: 'saved' | 'custom') => void;
@@ -86,21 +77,35 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     placeholder: string;
     color: string;
     onLocationSelect: (location: { address: string; lat: number; lng: number }) => void;
+  }
+
+  const AddressInput: React.FC<AddressInputProps> = ({ 
+    label, 
+    value, 
+    onChange, 
+    type,
+    onTypeChange, 
+    placeholder, 
+    color,
+    onLocationSelect
   }) => (
-    <Card>
+    <Card className="futuristic-card neon-border border-primary/20 hover:border-primary/40 transition-all duration-300">
       <CardContent className="p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <MapPin className={`h-5 w-5 ${color}`} />
-          <Label className="font-medium">{label}</Label>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2 rounded-lg gradient-primary">
+            <MapPin className="h-5 w-5 text-white" />
+          </div>
+          <Label className="font-semibold text-lg">{label}</Label>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex space-x-2">
             <Button
               variant={type === 'saved' ? 'default' : 'outline'}
               size="sm"
               onClick={() => onTypeChange('saved')}
               disabled={savedAddresses.length === 0}
+              className={type === 'saved' ? 'gradient-primary text-white' : 'neon-border border-primary/30 hover:border-primary/60'}
             >
               Saved
             </Button>
@@ -108,14 +113,15 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
               variant={type === 'custom' ? 'default' : 'outline'}
               size="sm"
               onClick={() => onTypeChange('custom')}
+              className={type === 'custom' ? 'gradient-primary text-white' : 'neon-border border-primary/30 hover:border-primary/60'}
             >
               Custom
             </Button>
           </div>
           
-          {type === 'saved' && savedAddresses.length > 0 ?
+          {type === 'saved' && savedAddresses.length > 0 ? (
             <Select onValueChange={(value) => onChange(value, 'saved')}>
-              <SelectTrigger className="text-base">
+              <SelectTrigger className="text-base neon-border border-primary/30 hover:border-primary/60 bg-card/50">
                 <SelectValue placeholder="Select saved address" />
               </SelectTrigger>
               <SelectContent>
@@ -135,12 +141,12 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
               value={value}
               onChange={(value) => onChange(value, 'custom')}
               onLocationSelect={onLocationSelect}
-              className="text-base"
+              className="text-base neon-border border-primary/30 hover:border-primary/60 bg-card/50"
             />
           )}
           
           {savedAddresses.length === 0 && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-lg border border-border/50">
               <p>No saved addresses found.</p>
               <p>Add addresses in your profile to use them here.</p>
             </div>
@@ -174,12 +180,14 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
         onLocationSelect={handleToLocationSelect}
       />
 
-      <div className="bg-muted rounded-lg p-4">
-        <div className="aspect-video bg-background rounded-lg flex items-center justify-center">
+      <div className="futuristic-card p-6 neon-border border-primary/20">
+        <div className="aspect-video bg-card/30 rounded-lg flex items-center justify-center border border-border/50">
           <div className="text-center text-muted-foreground">
-            <MapPin className="h-8 w-8 mx-auto mb-2" />
-            <p className="text-sm">Interactive map will show here</p>
-            <p className="text-xs">Use the address inputs above for Google Maps autocomplete</p>
+            <div className="p-4 rounded-lg gradient-primary/20 inline-block mb-4">
+              <MapPin className="h-12 w-12 mx-auto text-primary" />
+            </div>
+            <p className="text-lg font-medium text-foreground mb-2">Interactive Quantum Map</p>
+            <p className="text-sm">Use the address inputs above for AI-powered location search</p>
           </div>
         </div>
       </div>
