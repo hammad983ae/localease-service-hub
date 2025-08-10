@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, User, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Seo from '@/components/Seo';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -59,129 +61,158 @@ const Auth: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col">
-      <div className="p-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 hover:bg-white/80 backdrop-blur-sm"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Home
-        </Button>
-      </div>
+    return (<>
+      <Seo
+        title="LocalEase | Sign in or create account"
+        description="Securely sign in or create your LocalEase account for moving, transport, and disposal services."
+      />
+      <div className="min-h-screen flex flex-col">
+        <header className="px-4 py-3">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </header>
 
-      <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-          <CardHeader className="text-center space-y-4">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-2xl font-bold text-white">L</span>
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
-              </CardTitle>
-              <p className="text-gray-500 mt-2">
-                {isLogin ? 'Sign in to your LocalEase account' : 'Get started with LocalEase'}
-              </p>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700">Account Type</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      type="button"
-                      variant={isCompany ? 'default' : 'outline'}
-                      onClick={() => setIsCompany(true)}
-                      className="flex items-center gap-2 h-12"
-                    >
-                      <Building2 className="h-4 w-4" />
-                      Company
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={!isCompany ? 'default' : 'outline'}
-                      onClick={() => setIsCompany(false)}
-                      className="flex items-center gap-2 h-12"
-                    >
-                      <User className="h-4 w-4" />
-                      User
-                    </Button>
+        <main className="flex-1">
+          <section className="container mx-auto px-4">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              {/* Form Card */}
+              <article className="order-2 md:order-1">
+                <Card className="border border-border/60 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+                  <CardHeader className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight">
+                      {isLogin ? 'Sign in' : 'Create your account'}
+                    </h1>
+                    <p className="text-muted-foreground">
+                      {isLogin ? 'Welcome back to LocalEase' : 'Get started in minutes — it’s free.'}
+                    </p>
+                  </CardHeader>
+
+                  <CardContent className="space-y-6">
+                    <div className="flex justify-center">
+                      <Tabs value={isLogin ? 'signin' : 'signup'} onValueChange={(v) => setIsLogin(v === 'signin')}>
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="signin">Sign in</TabsTrigger>
+                          <TabsTrigger value="signup">Sign up</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      {!isLogin && (
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Account type</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              type="button"
+                              variant={isCompany ? 'default' : 'outline'}
+                              onClick={() => setIsCompany(true)}
+                              className="h-10 justify-center"
+                            >
+                              <Building2 className="h-4 w-4 mr-2" />
+                              Company
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={!isCompany ? 'default' : 'outline'}
+                              onClick={() => setIsCompany(false)}
+                              className="h-10 justify-center"
+                            >
+                              <User className="h-4 w-4 mr-2" />
+                              Individual
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <Label htmlFor="name">{isCompany ? 'Company name' : 'Full name'}</Label>
+                          <Input
+                            id="name"
+                            type="text"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            required={!isLogin}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full h-11"
+                        disabled={loading}
+                      >
+                        {loading ? 'Loading...' : (isLogin ? 'Sign in' : 'Create account')}
+                      </Button>
+
+                      <div className="text-center text-sm">
+                        <button
+                          type="button"
+                          onClick={() => setIsLogin(!isLogin)}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          {isLogin
+                            ? "Don't have an account? Sign up"
+                            : 'Already have an account? Sign in'
+                          }
+                        </button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </article>
+
+              {/* Marketing Panel */}
+              <aside className="order-1 md:order-2 relative rounded-2xl p-8 md:p-12 bg-gradient-to-br from-primary/10 via-background to-secondary/10 border border-border/60 shadow-xl overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent)]">
+                  <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+                  <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-secondary/20 blur-3xl" />
+                </div>
+                <div className="relative space-y-6">
+                  <div className="inline-flex h-10 items-center rounded-full border border-border/60 bg-background/80 px-4 text-sm shadow-sm">
+                    <span className="font-medium">LocalEase</span>
                   </div>
+                  <h2 className="text-2xl font-semibold tracking-tight">All-in-one local services, built like a SaaS</h2>
+                  <ul className="space-y-3 text-muted-foreground">
+                    <li>• Book moving, transport, and disposal with ease</li>
+                    <li>• Real-time chat and quotes</li>
+                    <li>• Professional dashboard experience</li>
+                  </ul>
                 </div>
-              )}
-
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                    {isCompany ? 'Company Name' : 'Full Name'}
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required={!isLogin}
-                    className="h-12"
-                  />
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="h-12"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-12"
-                />
-              </div>
-              
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
-              </Button>
-              
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  {isLogin 
-                    ? "Don't have an account? Sign up" 
-                    : 'Already have an account? Sign in'
-                  }
-                </button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </aside>
+            </div>
+          </section>
+        </main>
       </div>
-    </div>
-  );
+    </>);
 };
 
 export default Auth;
