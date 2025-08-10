@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { unreadCount } = useNotifications();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
 
   const navItems = [
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
                     <div className="pt-2 border-t border-border/50">
                       <button
                         onClick={() => {
-                          logout();
+                          signOut();
                           setIsMenuOpen(false);
                         }}
                         className="flex items-center space-x-3 p-3 rounded-xl hover:bg-destructive/10 text-destructive w-full transition-colors"
