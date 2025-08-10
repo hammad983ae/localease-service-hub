@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import GoogleMaps from '@/components/ui/google-maps';
 
 interface Address {
   id: string;
@@ -58,15 +58,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     }
   };
 
-  const handleFromLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('From location selected:', location);
-    handleFromChange(location.address, 'custom');
-  };
 
-  const handleToLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('To location selected:', location);
-    handleToChange(location.address, 'custom');
-  };
 
   interface AddressInputProps {
     label: string;
@@ -76,7 +68,6 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     onTypeChange: (type: 'saved' | 'custom') => void;
     placeholder: string;
     color: string;
-    onLocationSelect: (location: { address: string; lat: number; lng: number }) => void;
   }
 
   const AddressInput: React.FC<AddressInputProps> = ({ 
@@ -86,8 +77,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
     type,
     onTypeChange, 
     placeholder, 
-    color,
-    onLocationSelect
+    color
   }) => (
     <Card className="futuristic-card neon-border border-primary/20 hover:border-primary/40 transition-all duration-300">
       <CardContent className="p-6">
@@ -136,11 +126,10 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
               </SelectContent>
             </Select>
           ) : (
-            <GoogleMaps
+            <Input
               placeholder={placeholder}
               value={value}
-              onChange={(value) => onChange(value, 'custom')}
-              onLocationSelect={onLocationSelect}
+              onChange={(e) => onChange(e.target.value, 'custom')}
               className="text-base neon-border border-primary/30 hover:border-primary/60 bg-card/50"
             />
           )}
@@ -166,7 +155,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
         onTypeChange={setFromType}
         placeholder="Enter pickup address"
         color="text-green-600"
-        onLocationSelect={handleFromLocationSelect}
+
       />
 
       <AddressInput
@@ -177,7 +166,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
         onTypeChange={setToType}
         placeholder="Enter destination address"
         color="text-red-600"
-        onLocationSelect={handleToLocationSelect}
+
       />
 
       <div className="futuristic-card p-6 neon-border border-primary/20">
@@ -187,7 +176,7 @@ const EnhancedAddressSelection: React.FC<EnhancedAddressSelectionProps> = ({ dat
               <MapPin className="h-12 w-12 mx-auto text-primary" />
             </div>
             <p className="text-lg font-medium text-foreground mb-2">Interactive Quantum Map</p>
-            <p className="text-sm">Use the address inputs above for AI-powered location search</p>
+            <p className="text-sm">Enter addresses manually in the input fields above</p>
           </div>
         </div>
       </div>

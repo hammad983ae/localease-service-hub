@@ -1118,6 +1118,20 @@ const resolvers = {
       // Publish message to subscribers
       pubsub.publishMessage(chatRoomId, message);
       
+      // Also publish chat room update
+      pubsub.publish('CHAT_ROOM_UPDATED', {
+        id: chatRoomId,
+        bookingId: chatRoom.bookingId,
+        bookingType: chatRoom.bookingType,
+        userId: chatRoom.userId,
+        companyId: chatRoom.companyId,
+        adminId: chatRoom.adminId,
+        chatType: chatRoom.chatType,
+        isActive: chatRoom.isActive,
+        createdAt: chatRoom.createdAt,
+        updatedAt: new Date()
+      });
+      
       return message;
     },
     sendAdminMessage: async (_, { chatRoomId, content, messageType = 'text' }, { user }) => {
@@ -1142,6 +1156,20 @@ const resolvers = {
       // Publish to subscription
       pubsub.publish('MESSAGE_ADDED', {
         messageAdded: message
+      });
+      
+      // Also publish chat room update
+      pubsub.publish('CHAT_ROOM_UPDATED', {
+        id: chatRoomId,
+        bookingId: chatRoom.bookingId,
+        bookingType: chatRoom.bookingType,
+        userId: chatRoom.userId,
+        companyId: chatRoom.companyId,
+        adminId: chatRoom.adminId,
+        chatType: chatRoom.chatType,
+        isActive: chatRoom.isActive,
+        createdAt: chatRoom.createdAt,
+        updatedAt: new Date()
       });
       
       return message;
@@ -1630,6 +1658,30 @@ const resolvers = {
             const iterator = {
               next: async () => {
                 return { done: true };
+              }
+            };
+            return iterator;
+          }
+        };
+      }
+    },
+    chatRoomUpdated: {
+      subscribe: (_, __, { user }) => {
+        if (!user) throw new Error('Not authenticated');
+        
+        console.log('Chat room update subscription started for user:', user.userId);
+        
+        return {
+          [Symbol.asyncIterator]: () => {
+            const iterator = {
+              next: async () => {
+                return new Promise((resolve) => {
+                  const unsubscribe = pubsub.subscribe('CHAT_ROOM_UPDATED', (chatRoom) => {
+                    console.log('Chat room update published to subscription:', chatRoom.id);
+                    unsubscribe();
+                    resolve({ value: { chatRoomUpdated: chatRoom }, done: false });
+                  });
+                });
               }
             };
             return iterator;

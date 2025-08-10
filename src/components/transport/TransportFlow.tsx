@@ -10,7 +10,6 @@ import { ArrowLeft, CheckCircle, Package, Car, Truck, Clock } from 'lucide-react
 import { useTransportBookingSubmission } from '@/hooks/useTransportBookingSubmission';
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 import CompanySelection from '../moving/CompanySelection';
-import GoogleMaps from '@/components/ui/google-maps';
 
 interface TransportFlowProps {
   type: 'quote' | 'supplier';
@@ -283,25 +282,11 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>Full Address (Google Maps Autocomplete)</Label>
-                  <GoogleMaps
+                  <Label>Full Address</Label>
+                  <Input
                     placeholder="Enter pickup address"
                     value={transportData.pickupLocation.fullAddress}
-                    onChange={(value) => handleLocationChange('pickup', 'fullAddress', value)}
-                    onLocationSelect={(location) => {
-                      console.log('Pickup location selected:', location);
-                      // Parse the address into components
-                      const addressParts = location.address.split(',').map(part => part.trim());
-                      const updatedLocation = {
-                        ...transportData.pickupLocation,
-                        street: addressParts[0] || '',
-                        city: addressParts[1] || '',
-                        state: addressParts[2] || '',
-                        zipCode: addressParts[3] || '',
-                        fullAddress: location.address
-                      };
-                      updateData({ pickupLocation: updatedLocation });
-                    }}
+                    onChange={(e) => handleLocationChange('pickup', 'fullAddress', e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -347,25 +332,11 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>Full Address (Google Maps Autocomplete)</Label>
-                  <GoogleMaps
+                  <Label>Full Address</Label>
+                  <Input
                     placeholder="Enter drop-off address"
                     value={transportData.dropoffLocation.fullAddress}
-                    onChange={(value) => handleLocationChange('dropoff', 'fullAddress', value)}
-                    onLocationSelect={(location) => {
-                      console.log('Dropoff location selected:', location);
-                      // Parse the address into components
-                      const addressParts = location.address.split(',').map(part => part.trim());
-                      const updatedLocation = {
-                        ...transportData.dropoffLocation,
-                        street: addressParts[0] || '',
-                        city: addressParts[1] || '',
-                        state: addressParts[2] || '',
-                        zipCode: addressParts[3] || '',
-                        fullAddress: location.address
-                      };
-                      updateData({ dropoffLocation: updatedLocation });
-                    }}
+                    onChange={(e) => handleLocationChange('dropoff', 'fullAddress', e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4">

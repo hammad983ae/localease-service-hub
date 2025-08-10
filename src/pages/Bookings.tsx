@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car, MessageCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car, MessageCircle, Plus, TrendingUp, Users, CheckCircle } from 'lucide-react';
 import { useQuery, gql } from '@apollo/client';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -105,13 +105,13 @@ const Bookings: React.FC = () => {
       hour12: true
     });
   };
-
+  
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -177,53 +177,107 @@ const Bookings: React.FC = () => {
 
   const isLoading = movingLoading || disposalLoading || transportLoading;
 
+  // Calculate stats
+  const totalBookings = allBookings.length;
+  const pendingBookings = allBookings.filter(b => b.status === 'pending').length;
+  const completedBookings = allBookings.filter(b => b.status === 'approved').length;
+  
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading bookings...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading bookings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">My Bookings</h1>
-          <p className="text-muted-foreground">Track all your service requests</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Compact Header */}
+      <div className="bg-white border-b px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">My Bookings</h1>
+            <p className="text-sm text-gray-500">Track and manage your service bookings</p>
+          </div>
+          <Button 
+            size="sm"
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={() => navigate('/moving')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Booking
+          </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search bookings..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Compact Stats */}
+      <div className="px-4 py-3 bg-white border-b">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div>
+              <p className="text-xs font-medium text-blue-600">Total</p>
+              <p className="text-lg font-bold text-blue-900">{totalBookings}</p>
+            </div>
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+            <div>
+              <p className="text-xs font-medium text-yellow-600">Pending</p>
+              <p className="text-lg font-bold text-yellow-900">{pendingBookings}</p>
+            </div>
+            <div className="p-2 bg-yellow-500 rounded-lg">
+              <Clock className="h-4 w-4 text-white" />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+            <div>
+              <p className="text-xs font-medium text-green-600">Completed</p>
+              <p className="text-lg font-bold text-green-900">{completedBookings}</p>
+            </div>
+            <div className="p-2 bg-green-500 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-white" />
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
+      </div>
+
+      {/* Compact Filters */}
+      <div className="px-4 py-3 bg-white border-b">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-9"
+            />
+          </div>
+          
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm"
+            className="h-9 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
+          
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm"
+            className="h-9 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Services</option>
             <option value="moving">Moving</option>
@@ -233,77 +287,81 @@ const Bookings: React.FC = () => {
         </div>
       </div>
 
-      {/* Bookings List */}
-      {filteredBookings.length === 0 ? (
-        <div className="text-center py-12">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No bookings found</h3>
-          <p className="text-muted-foreground">
-            {searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' 
-              ? 'Try adjusting your filters' 
-              : 'You haven\'t made any bookings yet'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredBookings.map((booking) => {
-            const ServiceIcon = getServiceIcon(booking.type);
-            const addressInfo = getAddressInfo(booking);
-            
-            return (
-              <Card key={booking.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <ServiceIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">
+      {/* Compact Bookings List */}
+      <div className="px-4 py-3">
+        {filteredBookings.length === 0 ? (
+          <div className="text-center py-8">
+            <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <h3 className="text-sm font-medium text-gray-900 mb-1">No bookings found</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              {allBookings.length === 0 
+                ? "You haven't made any bookings yet."
+                : "No bookings match your current filters."
+              }
+            </p>
+            <Button 
+              size="sm"
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={() => navigate('/moving')}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              Make Your First Booking
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredBookings.map((booking, index) => {
+              const ServiceIcon = getServiceIcon(booking.type);
+              const addressInfo = getAddressInfo(booking);
+              
+              return (
+                <div 
+                  key={booking.id} 
+                  className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white">
+                      <ServiceIcon className="h-4 w-4" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">
                           {getServiceLabel(booking.type, booking.serviceType)}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(booking.createdAt)}
-                        </p>
+                        </h3>
+                        <Badge className={`text-xs border ${getStatusColor(booking.status)}`}>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <span>#{booking.id}</span>
+                        <span>{formatDate(booking.createdAt)}</span>
+                        {booking.dateTime && (
+                          <span>{formatTime(booking.dateTime)}</span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">{addressInfo.from}</span>
+                        </div>
+                        {addressInfo.to !== 'N/A' && (
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-3 w-3" />
+                            <span className="truncate">{addressInfo.to}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <Badge className={cn("text-xs", getStatusColor(booking.status))}>
-                      {booking.status}
-                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">From:</span>
-                    <span className="font-medium">{addressInfo.from}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">To:</span>
-                    <span className="font-medium">{addressInfo.to}</span>
-                  </div>
-                  {booking.dateTime && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Date:</span>
-                      <span className="font-medium">{formatDate(booking.dateTime)}</span>
-                    </div>
-                  )}
-                  {booking.dateTimeFlexible && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Time:</span>
-                      <span className="font-medium">Flexible</span>
-                    </div>
-                  )}
-                  
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

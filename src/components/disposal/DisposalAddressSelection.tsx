@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { MapPin } from 'lucide-react';
-import GoogleMaps from '@/components/ui/google-maps';
 
 interface DisposalAddressSelectionProps {
   data: {
@@ -32,24 +32,7 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
     onUpdate(updatedAddress);
   };
 
-  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('Location selected:', location);
-    
-    // Parse the address into components
-    const addressParts = location.address.split(',').map(part => part.trim());
-    
-    // Simple parsing - in a real app, you'd want more sophisticated parsing
-    const updatedAddress = {
-      ...data,
-      street: addressParts[0] || '',
-      city: addressParts[1] || '',
-      state: addressParts[2] || '',
-      zipCode: addressParts[3] || '',
-      fullAddress: location.address
-    };
-    
-    onUpdate(updatedAddress);
-  };
+
 
   return (
     <div className="space-y-6">
@@ -62,12 +45,12 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="fullAddress">Full Address (Google Maps Autocomplete)</Label>
-            <GoogleMaps
+            <Label htmlFor="fullAddress">Full Address</Label>
+            <Input
+              id="fullAddress"
               placeholder="Enter pickup address"
               value={data.fullAddress}
-              onChange={(value) => handleChange('fullAddress', value)}
-              onLocationSelect={handleLocationSelect}
+              onChange={(e) => handleChange('fullAddress', e.target.value)}
             />
           </div>
           
@@ -111,7 +94,7 @@ const DisposalAddressSelection: React.FC<DisposalAddressSelectionProps> = ({ dat
           <div className="text-center text-muted-foreground">
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Interactive map will show here</p>
-            <p className="text-xs">Use the address input above for Google Maps autocomplete</p>
+            <p className="text-xs">Enter the address manually in the input field above</p>
           </div>
         </div>
       </div>

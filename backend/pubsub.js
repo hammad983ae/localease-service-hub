@@ -69,6 +69,9 @@ class PubSub {
       content: message.content.substring(0, 50) + '...'
     });
     this.publish(channel, message);
+    
+    // Also publish to general chat room updates
+    this.publish('CHAT_ROOM_UPDATED', { id: chatRoomId, updatedAt: new Date() });
   }
 }
 

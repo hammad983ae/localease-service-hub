@@ -2,9 +2,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { MapPin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import GoogleMaps from '@/components/ui/google-maps';
 
 interface AddressSelectionProps {
   data: {
@@ -25,15 +25,7 @@ const AddressSelection: React.FC<AddressSelectionProps> = ({ data, onUpdate }) =
     onUpdate({ ...data, to: value });
   };
 
-  const handleFromLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('From location selected:', location);
-    handleFromChange(location.address);
-  };
 
-  const handleToLocationSelect = (location: { address: string; lat: number; lng: number }) => {
-    console.log('To location selected:', location);
-    handleToChange(location.address);
-  };
 
   return (
     <div className="space-y-6">
@@ -43,11 +35,10 @@ const AddressSelection: React.FC<AddressSelectionProps> = ({ data, onUpdate }) =
             <MapPin className="h-5 w-5 text-green-600" />
             <Label className="font-medium">{t('moving.from')}</Label>
           </div>
-          <GoogleMaps
+          <Input
             placeholder="Enter pickup address"
             value={data.from}
-            onChange={handleFromChange}
-            onLocationSelect={handleFromLocationSelect}
+            onChange={(e) => handleFromChange(e.target.value)}
             className="text-base"
           />
         </CardContent>
@@ -59,11 +50,10 @@ const AddressSelection: React.FC<AddressSelectionProps> = ({ data, onUpdate }) =
             <MapPin className="h-5 w-5 text-red-600" />
             <Label className="font-medium">{t('moving.to')}</Label>
           </div>
-          <GoogleMaps
+          <Input
             placeholder="Enter destination address"
             value={data.to}
-            onChange={handleToChange}
-            onLocationSelect={handleToLocationSelect}
+            onChange={(e) => handleToChange(e.target.value)}
             className="text-base"
           />
         </CardContent>
@@ -74,7 +64,7 @@ const AddressSelection: React.FC<AddressSelectionProps> = ({ data, onUpdate }) =
           <div className="text-center text-muted-foreground">
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Interactive map will show here</p>
-            <p className="text-xs">Use the address inputs above for Google Maps autocomplete</p>
+            <p className="text-xs">Enter the addresses manually in the input fields above</p>
           </div>
         </div>
       </div>

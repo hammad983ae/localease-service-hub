@@ -318,6 +318,7 @@ const typeDefs = gql`
   type Subscription {
     messageAdded(chatRoomId: ID!): Message
     messageRead(messageId: ID!): Message
+    chatRoomUpdated: ChatRoom
   }
 
   input RoomInput {

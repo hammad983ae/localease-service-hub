@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { 
   MessageCircle, 
   User, 
   Building2, 
   Calendar, 
-  MapPin,
   Clock,
   ArrowLeft,
   Search,
-  Filter,
-  MoreVertical
+  Plus,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { gql, useQuery } from '@apollo/client';
+import { gql, useQuery, useSubscription } from '@apollo/client';
 import { useNotifications } from '@/contexts/NotificationContext';
 import Chat from './Chat';
 
@@ -69,37 +68,34 @@ const GET_COMPANY_CHAT_ROOMS = gql`
   }
 `;
 
-const GET_BOOKING_DETAILS = gql`
-  query GetBookingDetails($bookingId: ID!, $bookingType: String!) {
-    booking(id: $bookingId) @include(if: $isMoving) {
+// Subscription for real-time chat room updates
+const CHAT_ROOM_UPDATED_SUBSCRIPTION = gql`
+  subscription OnChatRoomUpdated {
+    chatRoomUpdated {
       id
-      status
-      dateTime
-      dateTimeFlexible
-      addresses { from to }
-      contact { name email phone }
-      company { name email phone }
+      bookingId
+      bookingType
+      userId
+      companyId
+      adminId
+      chatType
+      isActive
+      createdAt
+      updatedAt
     }
-    disposalBooking(id: $bookingId) @include(if: $isDisposal) {
+  }
+`;
+
+// Subscription for new messages (to update unread counts)
+const MESSAGE_ADDED_SUBSCRIPTION = gql`
+  subscription OnMessageAdded($chatRoomId: ID!) {
+    messageAdded(chatRoomId: $chatRoomId) {
       id
-      status
-      serviceType
-      dateTime
-      dateTimeFlexible
-      pickupAddress { fullAddress }
-      contact { name email phone }
-      company { name email phone }
-    }
-    transportBooking(id: $bookingId) @include(if: $isTransport) {
-      id
-      status
-      serviceType
-      dateTime
-      dateTimeFlexible
-      pickupLocation { fullAddress }
-      dropoffLocation { fullAddress }
-      contact { name email phone }
-      company { name email phone }
+      content
+      senderId
+      senderType
+      createdAt
+      isRead
     }
   }
 `;
@@ -131,20 +127,64 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   const isCompany = user?.role === 'company';
   const isAdmin = user?.role === 'admin';
   
-  const { data, loading, error } = useQuery(
-    isCompany ? GET_COMPANY_CHAT_ROOMS : GET_MY_CHAT_ROOMS
+  const { data, loading, error, refetch } = useQuery(
+    isCompany ? GET_COMPANY_CHAT_ROOMS : GET_MY_CHAT_ROOMS,
+    {
+      fetchPolicy: 'network-only',
+    }
   );
 
-  const { data: adminChatData, loading: adminChatLoading } = useQuery(
+  const { data: adminChatData, loading: adminChatLoading, refetch: refetchAdmin } = useQuery(
     GET_ADMIN_CHAT_ROOMS,
-    { skip: isCompany || isAdmin }
+    { 
+      skip: isCompany || isAdmin,
+      fetchPolicy: 'network-only',
+    }
   );
 
+  // Subscribe to chat room updates
+  const { data: chatRoomUpdateData } = useSubscription(CHAT_ROOM_UPDATED_SUBSCRIPTION, {
+    skip: !user,
+    onData: ({ data }) => {
+      if (data?.data?.chatRoomUpdated) {
+        console.log('Chat room updated via subscription:', data.data.chatRoomUpdated);
+        // Refetch chat rooms to get updated data
+        refetch();
+        if (!isCompany && !isAdmin) {
+          refetchAdmin();
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('Chat room subscription error:', error);
+    }
+  });
+
+  // Subscribe to new messages for all chat rooms to update unread counts
   const chatRooms = data?.myChatRooms || data?.companyChatRooms || [];
   const adminChatRooms = adminChatData?.adminChatRooms || [];
-  
-  // Combine regular chat rooms with admin chat rooms for users
   const allChatRooms = isCompany || isAdmin ? chatRooms : [...chatRooms, ...adminChatRooms];
+
+  // Subscribe to messages for each chat room
+  allChatRooms.forEach((chatRoom: ChatRoom) => {
+    useSubscription(MESSAGE_ADDED_SUBSCRIPTION, {
+      variables: { chatRoomId: chatRoom.id },
+      skip: !chatRoom.id,
+      onData: ({ data }) => {
+        if (data?.data?.messageAdded) {
+          const message = data.data.messageAdded;
+          // Only mark as unread if message is not from current user
+          if (message.senderId !== user?.id) {
+            console.log('New message in chat room:', chatRoom.id, 'from:', message.senderId);
+            // The notification context will handle updating unread counts
+          }
+        }
+      },
+      onError: (error) => {
+        console.error('Message subscription error for chat room:', chatRoom.id, error);
+      }
+    });
+  });
 
   // Auto-open chat for specific booking if initialBookingId is provided
   React.useEffect(() => {
@@ -163,7 +203,6 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   const handleChatRoomClick = (chatRoomId: string) => {
     setSelectedChatRoom(chatRoomId);
     setShowChat(true);
-    // Mark chat as read when opened
     markAsRead(chatRoomId);
   };
 
@@ -184,28 +223,12 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
     return date.toLocaleDateString();
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
   const getBookingTypeLabel = (type: string) => {
     switch (type) {
       case 'moving': return 'Moving Service';
       case 'disposal': return 'Disposal Service';
       case 'transport': return 'Transport Service';
       default: return type;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -221,7 +244,10 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   if (loading || adminChatLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading chat rooms...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading chats...</p>
+        </div>
       </div>
     );
   }
@@ -229,171 +255,129 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-red-500">Error loading chat rooms: {error.message}</div>
+        <div className="text-center">
+          <MessageCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error Loading Chats</h3>
+          <p className="text-muted-foreground">{error.message}</p>
+        </div>
       </div>
     );
   }
 
   if (showChat && selectedChatRoom) {
     return (
-      <div className="space-y-4">
-        <Button variant="outline" onClick={handleCloseChat} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Chat Rooms
-        </Button>
+      <div className="h-full">
         <Chat chatRoomId={selectedChatRoom} onClose={handleCloseChat} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Enhanced Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            Secure Chats
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            {isCompany 
-              ? "Communicate with your customers"
-              : "Chat with service providers"
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-sm">
-            {allChatRooms.length} {allChatRooms.length === 1 ? 'chat' : 'chats'}
-          </Badge>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search chats by booking ID or service type..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-        />
-      </div>
-
-      {allChatRooms.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="relative">
-              <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
-              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                0
-              </div>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No chats yet</h3>
-            <p className="text-muted-foreground text-center max-w-md">
+    <div className="h-full flex flex-col">
+      {/* Simple Header */}
+      <div className="p-4 border-b bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+            <p className="text-gray-500">
               {isCompany 
-                ? "You'll see chat rooms here when customers approve your bookings. Start by accepting some service requests!"
-                : "You'll see chat rooms here when companies approve your bookings. Start by creating some service requests!"
+                ? "Communicate with your customers"
+                : "Chat with service providers and support"
               }
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredChatRooms.map((chatRoom: ChatRoom) => {
-            const isUnread = unreadChats.has(chatRoom.id);
-            
-            return (
-              <Card 
-                key={chatRoom.id} 
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  isUnread ? 'border-l-4 border-l-primary bg-blue-50/50' : ''
-                }`}
-                onClick={() => handleChatRoomClick(chatRoom.id)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12 bg-gradient-to-r from-primary to-blue-600">
-                          <AvatarImage src="" />
-                          <AvatarFallback className="text-white">
-                            {isCompany ? <Building2 className="h-6 w-6" /> : <User className="h-6 w-6" />}
-                          </AvatarFallback>
-                        </Avatar>
-                        {isUnread && (
-                          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            !
-                          </div>
+          </div>
+          <Badge className="bg-blue-100 text-blue-800">
+            {allChatRooms.length} chats
+          </Badge>
+        </div>
+
+        {/* Simple Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search chats..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 border-gray-200"
+          />
+        </div>
+      </div>
+
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {allChatRooms.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No chats yet</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              {isCompany 
+                ? "You'll see chat rooms here when customers approve your bookings."
+                : "You'll see chat rooms here when companies approve your bookings."
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredChatRooms.map((chatRoom: ChatRoom) => {
+              const isUnread = unreadChats.has(chatRoom.id);
+              
+              return (
+                <div 
+                  key={chatRoom.id} 
+                  className={`p-4 bg-white rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
+                    isUnread ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                  }`}
+                  onClick={() => handleChatRoomClick(chatRoom.id)}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-blue-500 text-white">
+                        {chatRoom.chatType === 'admin_user' ? (
+                          <MessageCircle className="h-5 w-5" />
+                        ) : (
+                          <Building2 className="h-5 w-5" />
                         )}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {getBookingTypeLabel(chatRoom.bookingType)}
+                          {chatRoom.chatType === 'admin_user' && (
+                            <Badge className="ml-2 bg-purple-100 text-purple-800 text-xs">
+                              Support
+                            </Badge>
+                          )}
+                        </h3>
+                        <span className="text-xs text-gray-500">
+                          {formatDate(chatRoom.updatedAt)}
+                        </span>
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">
-                            {chatRoom.bookingType === 'moving' ? 'Moving Service' :
-                             chatRoom.bookingType === 'disposal' ? 'Disposal Service' :
-                             'Transport Service'}
-                            {chatRoom.chatType === 'admin_user' && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
-                                Admin Support
-                              </Badge>
-                            )}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Booking #{chatRoom.bookingId}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(chatRoom.updatedAt)}
-                          </p>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3" />
-                            <span>Booking ID: {chatRoom.bookingId}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            <span>Created: {formatDate(chatRoom.createdAt)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MessageCircle className="h-3 w-3" />
-                            <span>Last updated: {formatDate(chatRoom.updatedAt)} at {formatTime(chatRoom.updatedAt)}</span>
-                          </div>
-                        </div>
-                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Booking #{chatRoom.bookingId}
+                      </p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                      <MessageCircle className="h-5 w-5 text-muted-foreground" />
-                    </div>
+                    {isUnread && (
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          
-          {filteredChatRooms.length === 0 && searchTerm && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Search className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No chats found</h3>
-                <p className="text-muted-foreground text-center">
-                  No chats match your search for "{searchTerm}"
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+                </div>
+              );
+            })}
+            
+            {filteredChatRooms.length === 0 && searchTerm && (
+              <div className="text-center py-8">
+                <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">No chats found for "{searchTerm}"</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

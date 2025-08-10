@@ -7,10 +7,8 @@ const Chats: React.FC = () => {
   const bookingId = searchParams.get('bookingId');
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="py-6">
-        <ChatList initialBookingId={bookingId} />
-      </div>
+    <div className="saas-layout">
+      <ChatList initialBookingId={bookingId} />
     </div>
   );
 };
