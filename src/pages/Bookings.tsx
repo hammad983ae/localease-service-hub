@@ -8,6 +8,7 @@ import { Calendar, Clock, MapPin, Package, Search, Filter, Truck, Trash2, Car, M
 import { useQuery, gql } from '@apollo/client';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import Seo from '@/components/Seo';
 
 const MY_BOOKINGS_QUERY = gql`
   query MyBookings {
@@ -194,17 +195,19 @@ const Bookings: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Compact Header */}
-      <div className="bg-white border-b px-4 py-3">
+    <>
+      <Seo title="LocalEase | My Bookings" description="Track and manage your LocalEase bookings in one place." />
+      <div className="saas-layout">
+        {/* Compact Header */}
+        <div className="bg-card border-b border-border/60 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">My Bookings</h1>
-            <p className="text-sm text-gray-500">Track and manage your service bookings</p>
+            <h1 className="text-xl font-semibold text-foreground">My Bookings</h1>
+            <p className="text-sm text-muted-foreground">Track and manage your service bookings</p>
           </div>
           <Button 
             size="sm"
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            className="btn-primary"
             onClick={() => navigate('/moving')}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -264,7 +267,7 @@ const Bookings: React.FC = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-9 px-3 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -277,7 +280,7 @@ const Bookings: React.FC = () => {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="h-9 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-9 px-3 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All Services</option>
             <option value="moving">Moving</option>
@@ -301,7 +304,7 @@ const Bookings: React.FC = () => {
             </p>
             <Button 
               size="sm"
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="btn-primary"
               onClick={() => navigate('/moving')}
             >
               <Plus className="mr-1 h-3 w-3" />
@@ -317,7 +320,7 @@ const Bookings: React.FC = () => {
               return (
                 <div 
                   key={booking.id} 
-                  className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-shadow"
+                  className="bg-card rounded-lg border border-border p-3 hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white">
@@ -326,15 +329,15 @@ const Bookings: React.FC = () => {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className="text-sm font-medium text-foreground truncate">
                           {getServiceLabel(booking.type, booking.serviceType)}
                         </h3>
-                        <Badge className={`text-xs border ${getStatusColor(booking.status)}`}>
+                        <Badge className="text-xs border">
                           {booking.status}
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                         <span>#{booking.id}</span>
                         <span>{formatDate(booking.createdAt)}</span>
                         {booking.dateTime && (
@@ -342,7 +345,7 @@ const Bookings: React.FC = () => {
                         )}
                       </div>
                       
-                      <div className="mt-2 text-xs text-gray-600">
+                      <div className="mt-2 text-xs text-foreground/80">
                         <div className="flex items-center space-x-1">
                           <MapPin className="h-3 w-3" />
                           <span className="truncate">{addressInfo.from}</span>
@@ -363,6 +366,7 @@ const Bookings: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

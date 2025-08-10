@@ -4,22 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Truck, 
-  Trash2, 
-  Car, 
-  CheckCircle, 
-  Star, 
-  Users, 
-  ArrowRight, 
-  Zap,
-  Shield,
-  Clock,
-  MapPin,
-  MessageCircle,
-  TrendingUp,
-  Award
-} from 'lucide-react';
+import Seo from '@/components/Seo';
+import { Truck, Trash2, Car, CheckCircle, Star, Users, ArrowRight, Zap, Shield, Clock, MapPin } from 'lucide-react';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -104,7 +90,9 @@ const Landing: React.FC = () => {
   ];
 
   return (
-    <div className="saas-layout">
+    <>
+      <Seo title="LocalEase | Local service hub" description="Book moving, disposal, and transport services with a polished SaaS experience." />
+      <div className="saas-layout">
       {/* Hero Section */}
       <section className="hero-section section-padding">
         <div className="container-modern">
@@ -383,6 +371,7 @@ const Landing: React.FC = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 

@@ -18,6 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Seo from '@/components/Seo';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -122,7 +123,9 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="saas-layout">
+    <>
+      <Seo title="LocalEase | Home" description="LocalEase — moving, disposal, and transport services in a modern SaaS experience." />
+      <div className="saas-layout">
       {/* Hero Section */}
       <section className="hero-section section-padding">
         <div className="container-modern">
@@ -350,6 +353,7 @@ const Home: React.FC = () => {
         </div>
       </section>
     </div>
+    </>
   );
 };
 
