@@ -306,7 +306,7 @@ const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId }) 
   }
 
   return (
-    <div className="flex h-[600px] bg-background rounded-lg shadow">
+    <div className={`flex w-full h-[70vh] md:h-[640px] bg-card rounded-xl shadow mx-auto px-4 md:px-6 ${isEmbedded ? 'max-w-2xl' : 'max-w-6xl'}`}>
       {/* Chat Rooms List */}
       {!isEmbedded && (
         <div className="w-80 border-r border-border flex flex-col">
@@ -374,7 +374,7 @@ const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId }) 
             </div>
             
             <div className="flex items-center space-x-2">
-              <Badge className={selectedChatRoom.isActive ? "default" : "secondary"}>
+              <Badge variant={selectedChatRoom.isActive ? "default" : "secondary"}>
                 {selectedChatRoom.isActive ? 'Active' : 'Inactive'}
               </Badge>
               <Button
