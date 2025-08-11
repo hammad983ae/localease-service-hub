@@ -79,11 +79,11 @@ const Auth: React.FC = () => {
         </header>
 
         <main className="flex-1">
-          <section className="container mx-auto px-4">
+          <section className="container mx-auto px-4 py-10 md:py-16">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               {/* Form Card */}
               <article className="order-2 md:order-1">
-                <Card className="border border-border/60 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+                <Card className="border border-border/60 shadow-xl rounded-2xl bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
                   <CardHeader className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight">
                       {isLogin ? 'Sign in' : 'Create your account'}
@@ -139,6 +139,7 @@ const Auth: React.FC = () => {
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             required={!isLogin}
+                            className="h-11 rounded-xl"
                           />
                         </div>
                       )}
@@ -151,6 +152,7 @@ const Auth: React.FC = () => {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
+                          className="h-11 rounded-xl"
                         />
                       </div>
 
@@ -162,12 +164,13 @@ const Auth: React.FC = () => {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
+                          className="h-11 rounded-xl"
                         />
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full h-11"
+                        className="w-full h-11 rounded-xl"
                         disabled={loading}
                       >
                         {loading ? 'Loading...' : (isLogin ? 'Sign in' : 'Create account')}

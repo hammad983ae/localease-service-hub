@@ -37,16 +37,16 @@ const Header: React.FC = () => {
   const isHomePage = location.pathname === '/home';
 
   return (
-    <header className="saas-header">
-      <div className="container-modern">
-        <div className="flex items-center justify-between h-16">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/home" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center text-white font-bold text-lg shadow-beautiful-lg group-hover:shadow-beautiful-xl transition-all duration-300">
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-md transition-transform duration-300 group-hover:scale-105">
               L
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-gradient">LocalEase</h1>
+              <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">LocalEase</h1>
               <p className="text-xs text-muted-foreground">Service Hub</p>
             </div>
           </Link>
@@ -57,10 +57,10 @@ const Header: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={cn(
-                  "nav-item",
-                  location.pathname === item.path && "active"
-                )}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors",
+                    location.pathname === item.path && "bg-primary text-primary-foreground"
+                  )}
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search services..."
-                  className="pl-10 input-modern"
+                  className="pl-10 h-10 rounded-xl border border-input bg-background shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
             </div>
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold flex items-center justify-center animate-bounce-in">
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -110,7 +110,7 @@ const Header: React.FC = () => {
 
               {/* User Dropdown */}
               {isMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-card border border-border/50 shadow-beautiful-xl z-50 animate-scale-in">
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border bg-popover shadow-lg z-50 animate-scale-in">
                   <div className="p-4 space-y-4">
                     {/* User Info */}
                     <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50">
@@ -176,7 +176,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-border/50 py-4 animate-slide-up">
+          <div className="md:hidden border-t border-border/50 py-4 animate-fade-in">
             <nav className="space-y-2">
               {navItems.map((item) => (
                 <Link
