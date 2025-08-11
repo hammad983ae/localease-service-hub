@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,63 +14,58 @@ import {
   Mail,
   Eye
 } from 'lucide-react';
-import { gql, useQuery } from '@apollo/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiClient } from '@/api/client';
 import QuoteModal from './QuoteModal';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const GET_MY_QUOTE_DOCUMENTS = gql`
-  query GetMyQuoteDocuments {
-    myQuoteDocuments {
-      id
-      bookingId
-      amount
-      currency
-      status
-      createdAt
-      bookingDetails
-    }
-  }
-`;
-
-const GET_ALL_QUOTE_DOCUMENTS = gql`
-  query GetAllQuoteDocuments {
-    allQuoteDocuments {
-      id
-      bookingId
-      amount
-      currency
-      status
-      createdAt
-      bookingDetails
-    }
-  }
-`;
+interface QuoteDocument {
+  id: string;
+  bookingId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  bookingDetails?: any;
+}
 
 const QuoteDocuments: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const [selectedQuote, setSelectedQuote] = useState<any>(null);
+  const [selectedQuote, setSelectedQuote] = useState<QuoteDocument | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [quoteDocuments, setQuoteDocuments] = useState<QuoteDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   console.log('QuoteDocuments - User:', user);
   console.log('QuoteDocuments - Token:', localStorage.getItem('token'));
   
-  const { data, loading, error } = useQuery(
-    isAdmin ? GET_ALL_QUOTE_DOCUMENTS : GET_MY_QUOTE_DOCUMENTS,
-    {
-      onError: (error) => {
-        console.error('QuoteDocuments Error:', error);
-        console.error('Error details:', error.graphQLErrors, error.networkError);
-      },
-      onCompleted: (data) => {
-        console.log('QuoteDocuments Data:', data);
+  // Fetch quote documents
+  useEffect(() => {
+    const fetchQuoteDocuments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (isAdmin) {
+          const response = await apiClient.getAdminInvoices();
+          setQuoteDocuments(response.invoices || []);
+        } else {
+          const response = await apiClient.getQuoteDocuments();
+          setQuoteDocuments(response.quotes || []);
+        }
+      } catch (err: any) {
+        console.error('Error fetching quote documents:', err);
+        setError(err.message || 'Failed to fetch quote documents');
+      } finally {
+        setLoading(false);
       }
-    }
-  );
+    };
 
-  const quoteDocuments = data?.myQuoteDocuments || data?.allQuoteDocuments || [];
+    fetchQuoteDocuments();
+  }, [isAdmin]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString([], {
@@ -87,7 +82,7 @@ const QuoteDocuments: React.FC = () => {
     }).format(amount);
   };
 
-  const handleViewQuote = (quoteDocument: any) => {
+  const handleViewQuote = (quoteDocument: QuoteDocument) => {
     setSelectedQuote(quoteDocument);
     setIsModalOpen(true);
   };
@@ -97,135 +92,35 @@ const QuoteDocuments: React.FC = () => {
     setSelectedQuote(null);
   };
 
-  const downloadInvoice = async (quoteDocument: any) => {
-    const details = quoteDocument.bookingDetails;
-    
-    // Create a temporary div to render the invoice content
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '-9999px';
-    tempDiv.style.width = '800px';
-    tempDiv.style.backgroundColor = 'white';
-    tempDiv.style.padding = '40px';
-    tempDiv.style.fontFamily = 'Arial, sans-serif';
-    tempDiv.style.fontSize = '12px';
-    tempDiv.style.lineHeight = '1.4';
-    
-    tempDiv.innerHTML = `
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #1f2937; margin: 0; font-size: 24px;">INVOICE</h1>
-        <p style="color: #6b7280; margin: 5px 0;">Invoice #${details.invoiceNumber || 'N/A'}</p>
-        <p style="color: #6b7280; margin: 5px 0;">Date: ${formatDate(quoteDocument.createdAt)}</p>
-        <p style="color: #6b7280; margin: 5px 0;">Status: ${quoteDocument.status.toUpperCase()}</p>
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
-        <div>
-          <h3 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-bottom: 15px;">CUSTOMER DETAILS</h3>
-          <p><strong>Name:</strong> ${details.userDetails?.name || 'N/A'}</p>
-          <p><strong>Email:</strong> ${details.userDetails?.email || 'N/A'}</p>
-          <p><strong>Phone:</strong> ${details.userDetails?.phone || 'N/A'}</p>
-          <p><strong>Address:</strong> ${details.userDetails?.address || 'N/A'}</p>
-        </div>
-        <div>
-          <h3 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 5px; margin-bottom: 15px;">SERVICE PROVIDER</h3>
-          <p><strong>Name:</strong> ${details.companyDetails?.name || 'N/A'}</p>
-          <p><strong>Email:</strong> ${details.companyDetails?.email || 'N/A'}</p>
-          <p><strong>Phone:</strong> ${details.companyDetails?.phone || 'N/A'}</p>
-          <p><strong>Address:</strong> ${details.companyDetails?.address || 'N/A'}</p>
-          <p><strong>Services:</strong> ${details.companyDetails?.services?.join(', ') || 'N/A'}</p>
-        </div>
-      </div>
-      
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #8b5cf6; padding-bottom: 5px; margin-bottom: 15px;">SERVICE DETAILS</h3>
-        <p><strong>Service Type:</strong> ${details.bookingType || details.serviceType || 'N/A'}</p>
-        <p><strong>Date:</strong> ${details.dateTime ? formatDate(details.dateTime) : 'Flexible'}</p>
-        ${details.dateTimeFlexible ? `<p><strong>Flexible:</strong> ${details.dateTimeFlexible}</p>` : ''}
-      </div>
-      
-      ${details.contact ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #f59e0b; padding-bottom: 5px; margin-bottom: 15px;">CONTACT INFORMATION</h3>
-        <p><strong>Name:</strong> ${details.contact.name || 'N/A'}</p>
-        <p><strong>Email:</strong> ${details.contact.email || 'N/A'}</p>
-        <p><strong>Phone:</strong> ${details.contact.phone || 'N/A'}</p>
-        ${details.contact.notes ? `<p><strong>Notes:</strong> ${details.contact.notes}</p>` : ''}
-      </div>
-      ` : ''}
-      
-      ${details.addresses ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #ef4444; padding-bottom: 5px; margin-bottom: 15px;">PICKUP & DELIVERY ADDRESSES</h3>
-        <p><strong>From:</strong> ${details.addresses.from || 'N/A'}</p>
-        <p><strong>To:</strong> ${details.addresses.to || 'N/A'}</p>
-      </div>
-      ` : ''}
-      
-      ${details.pickupAddress ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #ef4444; padding-bottom: 5px; margin-bottom: 15px;">PICKUP ADDRESS</h3>
-        <p>${details.pickupAddress.fullAddress || 'N/A'}</p>
-      </div>
-      ` : ''}
-      
-      ${details.pickupLocation ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #ef4444; padding-bottom: 5px; margin-bottom: 15px;">TRANSPORT DETAILS</h3>
-        <p><strong>Pickup:</strong> ${details.pickupLocation.fullAddress || 'N/A'}</p>
-        <p><strong>Dropoff:</strong> ${details.dropoffLocation?.fullAddress || 'N/A'}</p>
-      </div>
-      ` : ''}
-      
-      ${details.rooms ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #6366f1; padding-bottom: 5px; margin-bottom: 15px;">ROOM DETAILS</h3>
-        ${details.rooms.map((room: any) => 
-          `<p><strong>${room.floor} - ${room.room}:</strong> ${room.count} items</p>`
-        ).join('')}
-      </div>
-      ` : ''}
-      
-      ${details.items ? `
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #1f2937; border-bottom: 2px solid #f59e0b; padding-bottom: 5px; margin-bottom: 15px;">ITEM DETAILS</h3>
-        ${Array.isArray(details.items) ? 
-          details.items.map((item: any) => 
-            `<p>${typeof item === 'object' ? 
-              Object.entries(item).map(([key, value]) => `${key}: ${value}`).join(', ') :
-              item
-            }</p>`
-          ).join('') : 
-          `<p>${JSON.stringify(details.items, null, 2)}</p>`
-        }
-      </div>
-      ` : ''}
-      
-      <div style="text-align: center; margin-top: 40px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;">
-        <h2 style="color: #1f2937; margin: 0 0 10px 0;">TOTAL AMOUNT</h2>
-        <p style="font-size: 24px; font-weight: bold; color: #10b981; margin: 0;">${formatCurrency(quoteDocument.amount, quoteDocument.currency)}</p>
-      </div>
-      
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #6b7280;">
-        <p>Generated on: ${formatDate(details.generatedAt || quoteDocument.createdAt)}</p>
-        <p>Accepted on: ${formatDate(details.acceptedAt || quoteDocument.createdAt)}</p>
-        <p>Booking Status: ${details.bookingStatus || 'completed'}</p>
-      </div>
-    `;
-    
-    document.body.appendChild(tempDiv);
-    
+  const downloadInvoice = async (quoteDocument: QuoteDocument) => {
     try {
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
+      // Create a temporary div to render the invoice
+      const invoiceDiv = document.createElement('div');
+      invoiceDiv.innerHTML = `
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="color: #1f2937; margin-bottom: 20px;">Invoice</h1>
+          <div style="margin-bottom: 20px;">
+            <p><strong>Invoice ID:</strong> ${quoteDocument.id}</p>
+            <p><strong>Booking ID:</strong> ${quoteDocument.bookingId}</p>
+            <p><strong>Amount:</strong> ${formatCurrency(quoteDocument.amount, quoteDocument.currency)}</p>
+            <p><strong>Status:</strong> ${quoteDocument.status}</p>
+            <p><strong>Created:</strong> ${formatDate(quoteDocument.createdAt)}</p>
+          </div>
+          ${quoteDocument.bookingDetails ? `
+            <div style="margin-top: 20px;">
+              <h3>Booking Details</h3>
+              <pre style="background: #f3f4f6; padding: 10px; border-radius: 5px;">${JSON.stringify(quoteDocument.bookingDetails, null, 2)}</pre>
+            </div>
+          ` : ''}
+        </div>
+      `;
       
+      document.body.appendChild(invoiceDiv);
+      
+      const canvas = await html2canvas(invoiceDiv);
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdf = new jsPDF();
       const imgWidth = 210;
       const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -243,108 +138,19 @@ const QuoteDocuments: React.FC = () => {
         heightLeft -= pageHeight;
       }
       
-      pdf.save(`invoice-${details.invoiceNumber || 'quote'}.pdf`);
+      pdf.save(`invoice-${quoteDocument.id}.pdf`);
+      document.body.removeChild(invoiceDiv);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      // Fallback to text download if PDF generation fails
-      const invoice = `
-INVOICE
-
-Invoice Number: ${details.invoiceNumber || 'N/A'}
-Date: ${formatDate(quoteDocument.createdAt)}
-Status: ${quoteDocument.status.toUpperCase()}
-
-CUSTOMER DETAILS:
-Name: ${details.userDetails?.name || 'N/A'}
-Email: ${details.userDetails?.email || 'N/A'}
-Phone: ${details.userDetails?.phone || 'N/A'}
-Address: ${details.userDetails?.address || 'N/A'}
-
-SERVICE PROVIDER:
-Name: ${details.companyDetails?.name || 'N/A'}
-Email: ${details.companyDetails?.email || 'N/A'}
-Phone: ${details.companyDetails?.phone || 'N/A'}
-Address: ${details.companyDetails?.address || 'N/A'}
-Services: ${details.companyDetails?.services?.join(', ') || 'N/A'}
-
-SERVICE DETAILS:
-Service Type: ${details.bookingType || details.serviceType || 'N/A'}
-Date: ${details.dateTime ? formatDate(details.dateTime) : 'Flexible'}
-${details.dateTimeFlexible ? `Flexible: ${details.dateTimeFlexible}` : ''}
-
-${details.contact ? `
-CONTACT INFORMATION:
-Name: ${details.contact.name || 'N/A'}
-Email: ${details.contact.email || 'N/A'}
-Phone: ${details.contact.phone || 'N/A'}
-Notes: ${details.contact.notes || 'N/A'}
-` : ''}
-
-${details.addresses ? `
-PICKUP & DELIVERY ADDRESSES:
-From: ${details.addresses.from || 'N/A'}
-To: ${details.addresses.to || 'N/A'}
-` : ''}
-
-${details.pickupAddress ? `
-PICKUP ADDRESS:
-${details.pickupAddress.fullAddress || 'N/A'}
-` : ''}
-
-${details.pickupLocation ? `
-PICKUP LOCATION:
-${details.pickupLocation.fullAddress || 'N/A'}
-
-DROPOFF LOCATION:
-${details.dropoffLocation?.fullAddress || 'N/A'}
-` : ''}
-
-${details.rooms ? `
-ROOM DETAILS:
-${details.rooms.map((room: any) => 
-  `${room.floor} - ${room.room}: ${room.count} items`
-).join('\n')}
-` : ''}
-
-${details.items ? `
-ITEM DETAILS:
-${Array.isArray(details.items) ? 
-  details.items.map((item: any) => 
-    typeof item === 'object' ? 
-      Object.entries(item).map(([key, value]) => `${key}: ${value}`).join(', ') :
-      item
-  ).join(', ') : 
-  JSON.stringify(details.items, null, 2)
-}
-` : ''}
-
-TOTAL AMOUNT: ${formatCurrency(quoteDocument.amount, quoteDocument.currency)}
-
-Generated on: ${formatDate(details.generatedAt || quoteDocument.createdAt)}
-Accepted on: ${formatDate(details.acceptedAt || quoteDocument.createdAt)}
-Booking Status: ${details.bookingStatus || 'completed'}
-      `.trim();
-
-      const blob = new Blob([invoice], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${details.invoiceNumber || 'quote'}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } finally {
-      document.body.removeChild(tempDiv);
     }
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Loading Quote Documents...</h3>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading quote documents...</p>
         </div>
       </div>
     );
@@ -352,112 +158,109 @@ Booking Status: ${details.bookingStatus || 'completed'}
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Error Loading Documents</h3>
-          <p className="text-muted-foreground">{error.message}</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading documents</h3>
+          <p className="text-gray-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (quoteDocuments.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No quote documents</h3>
+          <p className="text-gray-500">
+            {isAdmin ? 'No quote documents found in the system' : 'You don\'t have any quote documents yet'}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Quote Documents</h1>
-        <p className="text-gray-600 mt-2">
-          {isAdmin ? 'All accepted quotes and invoices' : 'Your accepted quotes and invoices'}
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Quote Documents</h2>
+        <div className="text-sm text-gray-500">
+          {quoteDocuments.length} document{quoteDocuments.length !== 1 ? 's' : ''}
+        </div>
       </div>
 
-      {quoteDocuments.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Quote Documents</h3>
-          <p className="text-muted-foreground">
-            {isAdmin ? 'No accepted quotes found.' : 'You don\'t have any accepted quotes yet.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quoteDocuments.map((doc: any) => (
-            <Card key={doc.id} className="shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                                         <FileText className="h-5 w-5 text-primary" />
-                     Invoice #{doc.bookingDetails?.invoiceNumber || 'N/A'}
-                  </CardTitle>
-                  <Badge variant="default" className="bg-green-100 text-green-700">
-                    {doc.status}
-                  </Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {quoteDocuments.map((quoteDocument) => (
+          <Card key={quoteDocument.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Invoice #{quoteDocument.id.slice(-8)}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(quoteDocument.createdAt)}
+                    </p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                <Badge 
+                  variant={quoteDocument.status === 'paid' ? 'default' : 'secondary'}
+                  className="ml-2"
+                >
+                  {quoteDocument.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Amount</span>
-                  <span className="font-semibold text-lg">
-                    {formatCurrency(doc.amount, doc.currency)}
+                  <span className="text-sm font-medium">Amount:</span>
+                  <span className="text-lg font-bold text-green-600">
+                    {formatCurrency(quoteDocument.amount, quoteDocument.currency)}
                   </span>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(doc.createdAt)}</span>
-                  </div>
-                  
-                                     <div className="flex items-center gap-2 text-sm">
-                     <User className="h-4 w-4 text-muted-foreground" />
-                     <span>{doc.bookingDetails?.userDetails?.name || 'N/A'}</span>
-                   </div>
-                   
-                   <div className="flex items-center gap-2 text-sm">
-                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                     <span>{doc.bookingDetails?.companyDetails?.name || 'N/A'}</span>
-                   </div>
-                   
-                   <div className="flex items-center gap-2 text-sm">
-                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                     <span className="truncate">
-                       {doc.bookingDetails?.addresses?.from || 
-                        doc.bookingDetails?.pickupAddress?.fullAddress || 
-                        doc.bookingDetails?.pickupLocation?.fullAddress || 'N/A'}
-                     </span>
-                   </div>
+                
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>Booking #{quoteDocument.bookingId}</span>
                 </div>
+              </div>
 
-                <div className="pt-4 border-t space-y-2">
-                  <Button
-                    onClick={() => handleViewQuote(doc)}
-                    className="w-full gap-2"
-                    variant="default"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Details
-                  </Button>
-                  <Button
-                    onClick={() => downloadInvoice(doc)}
-                    className="w-full gap-2"
-                    variant="outline"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download PDF
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewQuote(quoteDocument)}
+                  className="flex-1"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadInvoice(quoteDocument)}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      {/* Quote Modal */}
-      <QuoteModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        quoteDocument={selectedQuote}
-      />
+             {selectedQuote && (
+         <QuoteModal
+           quoteDocument={selectedQuote}
+           isOpen={isModalOpen}
+           onClose={handleCloseModal}
+         />
+       )}
     </div>
   );
 };

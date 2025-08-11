@@ -1,42 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useApolloClient, gql } from '@apollo/client';
+import { apiClient } from '@/api/client';
 import { format } from 'date-fns';
-
-const CREATE_TRANSPORT_BOOKING_MUTATION = gql`
-  mutation CreateTransportBooking(
-    $serviceType: String!,
-    $items: [TransportItemInput],
-    $dateTime: Date,
-    $dateTimeFlexible: String,
-    $pickupLocation: LocationInput,
-    $dropoffLocation: LocationInput,
-    $contact: ContactInput,
-    $company: CompanyInput
-  ) {
-    createTransportBooking(
-      serviceType: $serviceType,
-      items: $items,
-      dateTime: $dateTime,
-      dateTimeFlexible: $dateTimeFlexible,
-      pickupLocation: $pickupLocation,
-      dropoffLocation: $dropoffLocation,
-      contact: $contact,
-      company: $company
-    ) {
-      id
-      status
-      createdAt
-    }
-  }
-`;
 
 export const useTransportBookingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const client = useApolloClient();
 
   const formatDateTime = (dateTime: any) => {
     if (!dateTime) return null;
@@ -100,11 +71,13 @@ export const useTransportBookingSubmission = () => {
           image_url: data.company.image_url || '',
           contact_phone: data.company.contact_phone || data.company.phone || '',
           contact_email: data.company.contact_email || data.company.email || '',
+          companyType: data.company.companyType || 'Transport'
         };
       }
-      const bookingVariables = {
+
+      const bookingData = {
         serviceType: data.serviceType,
-        items: data.items,
+        items: data.items || [],
         dateTime,
         dateTimeFlexible,
         pickupLocation: data.pickupLocation,
@@ -112,21 +85,20 @@ export const useTransportBookingSubmission = () => {
         contact: data.contact,
         company: companyInput
       };
-      console.log('Submitting transport booking with variables:', bookingVariables);
-      await client.mutate({
-        mutation: CREATE_TRANSPORT_BOOKING_MUTATION,
-        variables: bookingVariables
-      });
+
+      const response = await apiClient.createTransportBooking(bookingData);
+      
       toast({
-        title: "Transport request submitted successfully!",
-        description: "Your transport request has been received. We'll contact you soon.",
+        title: "Transport booking submitted!",
+        description: "Your transport request has been submitted successfully. We'll contact you soon.",
       });
-      return true;
+      
+      return response;
     } catch (error: any) {
-      console.error('Transport booking submission error:', error);
+      console.error('Error submitting transport booking:', error);
       toast({
-        title: "Error submitting transport request",
-        description: error.message || "Please try again later.",
+        title: "Submission failed",
+        description: error.message || "Failed to submit transport booking. Please try again.",
         variant: "destructive",
       });
       return false;

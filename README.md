@@ -60,7 +60,7 @@ npm run dev
 
 The application features real-time chat functionality using:
 - WebSocket connections for live messaging
-- GraphQL subscriptions for real-time updates
+- REST API endpoints for data management
 - Message read status tracking
 - Quote sending and acceptance
 

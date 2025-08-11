@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,92 +16,13 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { gql, useQuery, useSubscription } from '@apollo/client';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { apiClient } from '@/api/client';
 import Chat from './Chat';
-
-const GET_MY_CHAT_ROOMS = gql`
-  query MyChatRooms {
-    myChatRooms {
-      id
-      bookingId
-      bookingType
-      userId
-      companyId
-      adminId
-      chatType
-      isActive
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-const GET_ADMIN_CHAT_ROOMS = gql`
-  query AdminChatRooms {
-    adminChatRooms {
-      id
-      bookingId
-      bookingType
-      userId
-      adminId
-      chatType
-      isActive
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-const GET_COMPANY_CHAT_ROOMS = gql`
-  query CompanyChatRooms {
-    companyChatRooms {
-      id
-      bookingId
-      bookingType
-      userId
-      companyId
-      isActive
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-// Subscription for real-time chat room updates
-const CHAT_ROOM_UPDATED_SUBSCRIPTION = gql`
-  subscription OnChatRoomUpdated {
-    chatRoomUpdated {
-      id
-      bookingId
-      bookingType
-      userId
-      companyId
-      adminId
-      chatType
-      isActive
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-// Subscription for new messages (to update unread counts)
-const MESSAGE_ADDED_SUBSCRIPTION = gql`
-  subscription OnMessageAdded($chatRoomId: ID!) {
-    messageAdded(chatRoomId: $chatRoomId) {
-      id
-      content
-      senderId
-      senderType
-      createdAt
-      isRead
-    }
-  }
-`;
+import { io, Socket } from 'socket.io-client';
 
 interface ChatRoom {
-  id: string;
+  _id: string; // MongoDB ObjectId
   bookingId: string;
   bookingType: string;
   userId: string;
@@ -119,265 +40,278 @@ interface ChatListProps {
 
 const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   const { user } = useAuth();
-  const { markAsRead, unreadChats } = useNotifications();
-  const [selectedChatRoom, setSelectedChatRoom] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false);
+  const { unreadCount, unreadChats, markAsRead } = useNotifications();
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [filteredRooms, setFilteredRooms] = useState<ChatRoom[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedChatRoom, setSelectedChatRoom] = useState<string | null>(initialBookingId || null);
+  const [loading, setLoading] = useState(true);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
-  const isCompany = user?.role === 'company';
-  const isAdmin = user?.role === 'admin';
-  
-  const { data, loading, error, refetch } = useQuery(
-    isCompany ? GET_COMPANY_CHAT_ROOMS : GET_MY_CHAT_ROOMS,
-    {
-      fetchPolicy: 'network-only',
-    }
-  );
-
-  const { data: adminChatData, loading: adminChatLoading, refetch: refetchAdmin } = useQuery(
-    GET_ADMIN_CHAT_ROOMS,
-    { 
-      skip: isCompany || isAdmin,
-      fetchPolicy: 'network-only',
-    }
-  );
-
-  // Subscribe to chat room updates
-  const { data: chatRoomUpdateData } = useSubscription(CHAT_ROOM_UPDATED_SUBSCRIPTION, {
-    skip: !user,
-    onData: ({ data }) => {
-      if (data?.data?.chatRoomUpdated) {
-        console.log('Chat room updated via subscription:', data.data.chatRoomUpdated);
-        // Refetch chat rooms to get updated data
-        refetch();
-        if (!isCompany && !isAdmin) {
-          refetchAdmin();
-        }
+  // Fetch chat rooms based on user role
+  useEffect(() => {
+    const fetchChatRooms = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.getChatRooms();
+        // Backend returns array directly, not wrapped in chatRooms object
+        const rooms = Array.isArray(response) ? response : (response.chatRooms || []);
+        setChatRooms(rooms);
+        setFilteredRooms(rooms);
+        console.log('Fetched chat rooms:', rooms);
+      } catch (error) {
+        console.error('Error fetching chat rooms:', error);
+      } finally {
+        setLoading(false);
       }
-    },
-    onError: (error) => {
-      console.error('Chat room subscription error:', error);
-    }
-  });
+    };
 
-  // Subscribe to new messages for all chat rooms to update unread counts
-  const chatRooms = data?.myChatRooms || data?.companyChatRooms || [];
-  const adminChatRooms = adminChatData?.adminChatRooms || [];
-  const allChatRooms = isCompany || isAdmin ? chatRooms : [...chatRooms, ...adminChatRooms];
+    fetchChatRooms();
+  }, []);
 
-  // Subscribe to messages for each chat room
-  allChatRooms.forEach((chatRoom: ChatRoom) => {
-    useSubscription(MESSAGE_ADDED_SUBSCRIPTION, {
-      variables: { chatRoomId: chatRoom.id },
-      skip: !chatRoom.id,
-      onData: ({ data }) => {
-        if (data?.data?.messageAdded) {
-          const message = data.data.messageAdded;
-          // Only mark as unread if message is not from current user
-          if (message.senderId !== user?.id) {
-            console.log('New message in chat room:', chatRoom.id, 'from:', message.senderId);
-            // The notification context will handle updating unread counts
-          }
-        }
-      },
-      onError: (error) => {
-        console.error('Message subscription error for chat room:', chatRoom.id, error);
-      }
+  // Socket.IO connection for real-time updates
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Create Socket.IO connection
+    const newSocket = io('http://localhost:5002', {
+      auth: { token },
+      transports: ['websocket', 'polling']
     });
-  });
 
-  // Auto-open chat for specific booking if initialBookingId is provided
-  React.useEffect(() => {
-    if (initialBookingId && allChatRooms.length > 0) {
-      const targetChatRoom = allChatRooms.find((chatRoom: ChatRoom) => 
-        chatRoom.bookingId === initialBookingId
-      );
-      if (targetChatRoom) {
-        setSelectedChatRoom(targetChatRoom.id);
-        setShowChat(true);
-        markAsRead(targetChatRoom.id);
+    newSocket.on('connect', () => {
+      console.log('Socket.IO connected for chat list');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', error);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.log('Socket.IO disconnected:', reason);
+    });
+
+    newSocket.on('chat_room_updated', (data) => {
+      // Refresh chat rooms when a room is updated
+      apiClient.getChatRooms().then(response => {
+        const rooms = Array.isArray(response) ? response : (response.chatRooms || []);
+        setChatRooms(rooms);
+        setFilteredRooms(rooms);
+      });
+    });
+
+    newSocket.on('error', (error) => {
+      console.error('Socket.IO error:', error);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
       }
+    };
+  }, []);
+
+  // Filter chat rooms based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredRooms(chatRooms);
+    } else {
+      const filtered = chatRooms.filter(room => 
+        room.bookingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.bookingType.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredRooms(filtered);
     }
-  }, [initialBookingId, allChatRooms, markAsRead]);
+  }, [searchTerm, chatRooms]);
 
   const handleChatRoomClick = (chatRoomId: string) => {
-    setSelectedChatRoom(chatRoomId);
-    setShowChat(true);
-    markAsRead(chatRoomId);
+    const chatRoom = chatRooms.find(room => room._id === chatRoomId);
+    if (chatRoom) {
+      setSelectedChatRoom(chatRoomId);
+    }
   };
 
   const handleCloseChat = () => {
-    setShowChat(false);
     setSelectedChatRoom(null);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return 'Today';
-    if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays - 1} days ago`;
-    return date.toLocaleDateString();
-  };
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-  const getBookingTypeLabel = (type: string) => {
-    switch (type) {
-      case 'moving': return 'Moving Service';
-      case 'disposal': return 'Disposal Service';
-      case 'transport': return 'Transport Service';
-      default: return type;
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   };
 
-  const filteredChatRooms = allChatRooms.filter((chatRoom: ChatRoom) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      chatRoom.bookingId.toLowerCase().includes(searchLower) ||
-      chatRoom.bookingType.toLowerCase().includes(searchLower)
-    );
-  });
+  const getBookingTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      'moving': 'Moving Service',
+      'disposal': 'Disposal Service',
+      'transport': 'Transport Service'
+    };
+    return labels[type] || type;
+  };
 
-  if (loading || adminChatLoading) {
+  const getChatTypeIcon = (chatType: string) => {
+    switch (chatType) {
+      case 'admin_user':
+        return <User className="h-4 w-4" />;
+      case 'company_user':
+        return <Building2 className="h-4 w-4" />;
+      default:
+        return <MessageCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getChatTypeLabel = (chatType: string) => {
+    switch (chatType) {
+      case 'admin_user':
+        return 'Admin Chat';
+      case 'company_user':
+        return 'Company Chat';
+      default:
+        return 'Chat';
+    }
+  };
+
+
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading chats...</p>
+          <p className="text-muted-foreground">Loading chat rooms...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (chatRooms.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <MessageCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Error Loading Chats</h3>
-          <p className="text-muted-foreground">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showChat && selectedChatRoom) {
-    return (
-      <div className="h-full">
-        <Chat chatRoomId={selectedChatRoom} onClose={handleCloseChat} />
+      <div className="text-center py-8">
+        <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No chats yet</h3>
+        <p className="text-gray-600 mb-4">
+          When you have active bookings or need support, chat rooms will appear here.
+        </p>
+        <Button onClick={() => window.location.href = '/moving'} className="mt-4">
+          Book a Service
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Simple Header */}
-      <div className="p-4 border-b bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-            <p className="text-gray-500">
-              {isCompany 
-                ? "Communicate with your customers"
-                : "Chat with service providers and support"
-              }
-            </p>
+    <div className="flex h-[600px] bg-white rounded-lg shadow-lg">
+      {/* Chat Rooms List */}
+      <div className="w-80 border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center space-x-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Chats</h2>
           </div>
-          <Badge className="bg-blue-100 text-blue-800">
-            {allChatRooms.length} chats
-          </Badge>
+          <Button size="sm" variant="outline">
+            <Plus className="h-4 w-4 mr-2" />
+            New Chat
+          </Button>
         </div>
 
-        {/* Simple Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search chats..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 border-gray-200"
-          />
-        </div>
-      </div>
-
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {allChatRooms.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No chats yet</h3>
-            <p className="text-gray-500 max-w-md mx-auto">
-              {isCompany 
-                ? "You'll see chat rooms here when customers approve your bookings."
-                : "You'll see chat rooms here when companies approve your bookings."
-              }
-            </p>
+        {/* Search */}
+        <div className="p-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search chats..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredChatRooms.map((chatRoom: ChatRoom) => {
-              const isUnread = unreadChats.has(chatRoom.id);
-              
-              return (
-                <div 
-                  key={chatRoom.id} 
-                  className={`p-4 bg-white rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
-                    isUnread ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+        </div>
+
+        {/* Chat Rooms List */}
+        <div className="flex-1 overflow-y-auto">
+          {filteredRooms.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No chats yet</h3>
+              <p className="text-gray-500">
+                {searchTerm ? 'No chats match your search' : 'Start a conversation to see your chats here'}
+              </p>
+            </div>
+          ) : (
+            <div className="p-2 space-y-2">
+              {filteredRooms.map((room) => (
+                <div
+                  key={room._id}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedChatRoom === room._id
+                      ? 'bg-blue-50 border border-blue-200'
+                      : 'hover:bg-gray-50'
                   }`}
-                  onClick={() => handleChatRoomClick(chatRoom.id)}
+                  onClick={() => handleChatRoomClick(room._id)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-blue-500 text-white">
-                        {chatRoom.chatType === 'admin_user' ? (
-                          <MessageCircle className="h-5 w-5" />
-                        ) : (
-                          <Building2 className="h-5 w-5" />
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    
+                  <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {getBookingTypeLabel(chatRoom.bookingType)}
-                          {chatRoom.chatType === 'admin_user' && (
-                            <Badge className="ml-2 bg-purple-100 text-purple-800 text-xs">
-                              Support
-                            </Badge>
-                          )}
-                        </h3>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(chatRoom.updatedAt)}
-                        </span>
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                            {getChatTypeIcon(room.chatType)}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {getChatTypeLabel(room.chatType)}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {getBookingTypeLabel(room.bookingType)} #{room.bookingId}
+                          </p>
+                        </div>
                       </div>
-                      
-                      <p className="text-sm text-gray-500 mt-1">
-                        Booking #{chatRoom.bookingId}
-                      </p>
                     </div>
                     
-                    {isUnread && (
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    )}
+                    <div className="flex flex-col items-end space-y-1">
+                      {room.isActive ? (
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      ) : (
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(room.updatedAt)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-            
-            {filteredChatRooms.length === 0 && searchTerm && (
-              <div className="text-center py-8">
-                <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">No chats found for "{searchTerm}"</p>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Chat Area */}
+      {selectedChatRoom ? (
+        <Chat onClose={handleCloseChat} selectedChatRoomId={selectedChatRoom} />
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">Select a chat to start messaging</p>
+            <p className="text-sm">Choose from the list on the left to begin a conversation</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,50 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import { gql, useSubscription, useQuery } from '@apollo/client';
 import { useToast } from '@/hooks/use-toast';
-
-const GET_MY_CHAT_ROOMS = gql`
-  query GetMyChatRooms {
-    myChatRooms {
-      id
-      bookingId
-      bookingType
-      userId
-      companyId
-      isActive
-      updatedAt
-    }
-  }
-`;
-
-const GET_COMPANY_CHAT_ROOMS = gql`
-  query GetCompanyChatRooms {
-    companyChatRooms {
-      id
-      bookingId
-      bookingType
-      userId
-      companyId
-      isActive
-      updatedAt
-    }
-  }
-`;
-
-const MESSAGE_ADDED_SUBSCRIPTION = gql`
-  subscription OnMessageAdded($chatRoomId: ID!) {
-    messageAdded(chatRoomId: $chatRoomId) {
-      id
-      chatRoomId
-      senderId
-      senderType
-      content
-      messageType
-      isRead
-      createdAt
-    }
-  }
-`;
+import { apiClient } from '@/api/client';
+import { io, Socket } from 'socket.io-client';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -72,74 +30,95 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChats, setUnreadChats] = useState<Set<string>>(new Set());
+  const socketRef = useRef<Socket | null>(null);
 
-  // Get user's chat rooms
-  const { data: userChatRoomsData } = useQuery(GET_MY_CHAT_ROOMS, {
-    skip: !user || user.role === 'company',
-  });
-
-  const { data: companyChatRoomsData } = useQuery(GET_COMPANY_CHAT_ROOMS, {
-    skip: !user || user.role !== 'company',
-  });
-
-  // Combine chat rooms
-  const chatRooms = userChatRoomsData?.myChatRooms || companyChatRoomsData?.companyChatRooms || [];
-  console.log('NotificationContext - Chat rooms:', chatRooms);
-
-  // For now, we'll subscribe to the first chat room only
-  // This is a simplified approach to avoid hooks violations
-  // TODO: In a production app, implement a more sophisticated subscription
-  // management system that can handle multiple chat rooms simultaneously
-  const firstChatRoom = chatRooms.length > 0 ? chatRooms[0] : null;
-  
-  const { data: subscriptionData } = useSubscription(MESSAGE_ADDED_SUBSCRIPTION, {
-    skip: !user || !firstChatRoom?.id,
-    variables: { chatRoomId: firstChatRoom?.id || '' },
-  });
-
-  // Listen to subscription data
+  // Fetch initial unread count
   useEffect(() => {
-    if (subscriptionData?.messageAdded) {
-      const newMessage = subscriptionData.messageAdded;
+    const fetchUnreadCount = async () => {
+      if (!user) return;
       
-      // Only count messages from other users/companies
-      const isFromOtherUser = newMessage.senderId !== user?.id;
-      const isFromOtherCompany = user?.role === 'company' && newMessage.senderType === 'user';
-      const isFromOtherUserToCompany = user?.role === 'user' && newMessage.senderType === 'company';
-      
-      // Debug logging
-      console.log('Notification check:', {
-        newMessage,
-        user,
-        isFromOtherUser,
-        isFromOtherCompany,
-        isFromOtherUserToCompany,
-        senderId: newMessage.senderId,
-        userId: user?.id
-      });
-      
-      if (isFromOtherUser || isFromOtherCompany || isFromOtherUserToCompany) {
-        setUnreadChats(prev => new Set([...prev, newMessage.chatRoomId]));
+      try {
+        const response = await apiClient.getUnreadCount();
+        setUnreadCount(response.unreadCount || 0);
+        setUnreadChats(new Set(response.unreadChats || []));
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+  }, [user]);
+
+  // Socket.IO connection for real-time notifications
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || !user) return;
+
+    // Create Socket.IO connection
+    const socket = io('http://localhost:5002', {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket.IO connected for notifications');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', error);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Socket.IO disconnected:', reason);
+    });
+
+    socket.on('new_message', (data) => {
+      // Only mark as unread if message is not from current user
+      if (data.message.senderId !== user?.id) {
         setUnreadCount(prev => prev + 1);
+        setUnreadChats(prev => new Set([...prev, data.message.chatRoomId]));
         
-        // Show toast notification for new message
-        const senderName = newMessage.senderType === 'company' ? 'Company' : 'User';
+        // Show toast notification
         toast({
           title: "New Message",
-          description: `${senderName} sent you a message`,
-          duration: 3000,
+          description: `New message in chat room #${data.message.chatRoomId}`,
         });
       }
-    }
-  }, [subscriptionData, user, toast]);
-
-  const markAsRead = (chatRoomId: string) => {
-    setUnreadChats(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(chatRoomId);
-      return newSet;
     });
-    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    socket.on('error', (error) => {
+      console.error('Socket.IO error:', error);
+      toast({
+        title: "Connection Error",
+        description: error.message || "Socket error occurred",
+        variant: "destructive"
+      });
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [user, toast]);
+
+  const markAsRead = async (chatRoomId: string) => {
+    try {
+      await apiClient.markMessageAsRead(chatRoomId);
+      
+      // Update local state
+      setUnreadChats(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(chatRoomId);
+        return newSet;
+      });
+      
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
   };
 
   const resetUnreadCount = () => {
@@ -147,14 +126,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setUnreadChats(new Set());
   };
 
-  return (
-    <NotificationContext.Provider value={{
-      unreadCount,
-      unreadChats,
-      markAsRead,
-      resetUnreadCount,
-    }}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  const value = {
+    unreadCount,
+    unreadChats,
+    markAsRead,
+    resetUnreadCount,
+  };
+
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }; 

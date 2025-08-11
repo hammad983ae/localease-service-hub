@@ -8,6 +8,7 @@ import Moving3DStep from '@/components/moving3d/Moving3DStep';
 import AddressSelection from './AddressSelection';
 import DateTimeContactForm from './DateTimeContactForm';
 import BookingSummary from './BookingSummary';
+import MovingQuoteForm from './MovingQuoteForm';
 import { useBookingSubmission } from '@/hooks/useBookingSubmission';
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 
@@ -16,7 +17,7 @@ interface MovingFlowProps {
   onBack: () => void;
 }
 
-type Step = 'supplier' | 'rooms' | 'addresses' | 'datetime-contact' | 'summary';
+type Step = 'supplier' | 'rooms' | 'addresses' | 'datetime-contact' | 'summary' | 'quote-form';
 
 interface MovingData {
   rooms: any[];
@@ -48,7 +49,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   const steps: Step[] = type === 'supplier' 
     ? ['supplier', 'rooms', 'addresses', 'datetime-contact', 'summary']
-    : ['rooms', 'addresses', 'datetime-contact', 'summary'];
+    : ['rooms', 'addresses', 'datetime-contact', 'quote-form'];
   
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
@@ -85,14 +86,23 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
     handleNext();
   };
 
+  const handleQuoteSuccess = () => {
+    setIsSubmitted(true);
+  };
+
   const renderContent = () => {
     if (isSubmitted) {
       return (
         <div className="text-center py-8">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Booking Submitted Successfully!</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            {type === 'quote' ? 'Quote Request Submitted!' : 'Booking Submitted Successfully!'}
+          </h3>
           <p className="text-gray-600 mb-4">
-            Your moving request has been received. We'll contact you soon to confirm the details.
+            {type === 'quote' 
+              ? "Your moving quote request has been submitted and is pending admin approval. We'll contact you within 24 hours with a detailed quote."
+              : "Your moving request has been received. We'll contact you soon to confirm the details."
+            }
           </p>
           <Button onClick={onBack} className="mt-4">
             Back to Services
@@ -102,13 +112,6 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
     }
 
     switch (currentStep) {
-      case 'supplier':
-        return (
-          <MovingSuppliers 
-            onSupplierSelect={handleSupplierSelect}
-            selectedSupplier={movingData.company}
-          />
-        );
       case 'rooms':
         return (
           <Moving3DStep
@@ -132,6 +135,28 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
             contactData={movingData.contact}
             onDateTimeUpdate={(dateTime) => updateData({ dateTime })}
             onContactUpdate={(contact) => updateData({ contact })}
+          />
+        );
+      case 'quote-form':
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Moving Quote Request</h3>
+              <p className="text-muted-foreground">
+                Review your selections and fill out the final details to submit your quote request.
+              </p>
+            </div>
+            <MovingQuoteForm 
+              initialData={movingData}
+              onSuccess={handleQuoteSuccess}
+            />
+          </div>
+        );
+      case 'supplier':
+        return (
+          <MovingSuppliers 
+            onSupplierSelect={handleSupplierSelect}
+            selectedSupplier={movingData.company}
           />
         );
       case 'summary':
@@ -159,14 +184,16 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 'supplier':
-        return !!movingData.company;
       case 'rooms':
         return movingData.rooms.length > 0; // items selected within 3D step
       case 'addresses':
         return !!movingData.addresses.from && !!movingData.addresses.to;
       case 'datetime-contact':
         return !!movingData.dateTime && !!movingData.contact.name && !!movingData.contact.email && !!movingData.contact.phone;
+      case 'quote-form':
+        return false; // Quote form handles its own submission
+      case 'supplier':
+        return !!movingData.company;
       default:
         return true;
     }
@@ -174,14 +201,16 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 'supplier':
-        return 'Choose a Moving Company';
       case 'rooms':
         return 'Explore Home: Floors, Rooms & Items';
       case 'addresses':
         return 'Moving Addresses';
       case 'datetime-contact':
         return 'Schedule & Contact Details';
+      case 'quote-form':
+        return 'Submit Quote Request';
+      case 'supplier':
+        return 'Choose a Moving Company';
       case 'summary':
         return 'Booking Summary';
       default:
@@ -214,8 +243,8 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
               {renderContent()}
             </div>
 
-            {/* Navigation Buttons */}
-            {!isSubmitted && currentStep !== 'summary' && (
+            {/* Navigation Buttons - Only show for supplier flow */}
+            {!isSubmitted && currentStep !== 'summary' && currentStep !== 'quote-form' && (
               <div className="flex justify-between items-center pt-6 border-t">
                 <Button 
                   variant="outline" 

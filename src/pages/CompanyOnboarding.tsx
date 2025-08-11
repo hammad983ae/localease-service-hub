@@ -8,42 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { gql, useMutation } from '@apollo/client';
-
-const CREATE_COMPANY_PROFILE = gql`
-  mutation CreateCompanyProfile(
-    $name: String!,
-    $email: String!,
-    $phone: String,
-    $address: String,
-    $description: String,
-    $services: [String!],
-    $priceRange: String,
-    $companyType: String
-  ) {
-    createCompanyProfile(
-      name: $name,
-      email: $email,
-      phone: $phone,
-      address: $address,
-      description: $description,
-      services: $services,
-      priceRange: $priceRange,
-      companyType: $companyType
-    ) {
-      id
-      name
-      companyType
-      email
-      phone
-      address
-      description
-      services
-      priceRange
-      createdAt
-    }
-  }
-`;
+import { apiClient } from '@/api/client';
 
 const availableServices = [
   'Local Moving',
@@ -86,7 +51,7 @@ const CompanyOnboarding: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [createCompanyProfile, { loading }] = useMutation(CREATE_COMPANY_PROFILE);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -106,109 +71,192 @@ const CompanyOnboarding: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (!form.name || !form.email || !form.companyType) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
     try {
-      const { data } = await createCompanyProfile({ variables: form });
-      setSuccess('Company profile created! Redirecting to dashboard...');
-      setTimeout(() => navigate('/company-dashboard'), 1500);
+      setLoading(true);
+      await apiClient.createCompanyProfile(form);
+      setSuccess('Company profile created successfully!');
+      setTimeout(() => {
+        navigate('/company-dashboard');
+      }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to create company profile');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
-              {/* Icon can go here */}
-            </div>
-            <CardTitle className="text-2xl">Complete Your Company Profile</CardTitle>
-            <p className="text-muted-foreground">
-              Tell us about your company to start receiving service requests
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Company Name</Label>
-                <Input id="name" name="name" value={form.name} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Business Email</Label>
-                <Input id="email" name="email" type="email" value={form.email} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" value={form.phone} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" value={form.address} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Company Description</Label>
-                <Textarea id="description" name="description" value={form.description} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyType">Company Type</Label>
-                <select
-                  id="companyType"
-                  name="companyType"
-                  value={form.companyType}
-                  onChange={handleChange}
-                  required
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">Select type...</option>
-                  {companyTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-3">
-                <Label>Services Offered</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {availableServices.map((service) => (
-                    <div key={service} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={service}
-                        checked={form.services.includes(service)}
-                        onCheckedChange={() => handleServiceToggle(service)}
-                      />
-                      <Label htmlFor={service} className="text-sm">{service}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Price Range</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {priceRanges.map((range) => (
-                    <Button
-                      key={range}
-                      type="button"
-                      variant={form.priceRange === range ? 'default' : 'outline'}
-                      onClick={() => setForm(prev => ({ ...prev, priceRange: range }))}
-                      className="text-sm"
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+      <div className="container mx-auto px-4">
+        <div className="max-w-2xl mx-auto">
+          <Card className="shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold text-gray-900">
+                Company Onboarding
+              </CardTitle>
+              <p className="text-gray-600 mt-2">
+                Complete your company profile to start receiving service requests
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
+                
+                {success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 text-sm">{success}</p>
+                  </div>
+                )}
+
+                {/* Company Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Company Information</h3>
+                  
+                  <div>
+                    <Label htmlFor="name">Company Name *</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="Enter your company name"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="Enter your company email"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      value={form.address}
+                      onChange={handleChange}
+                      placeholder="Enter your company address"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="companyType">Company Type *</Label>
+                    <select
+                      id="companyType"
+                      name="companyType"
+                      value={form.companyType}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     >
-                      {range}
-                    </Button>
-                  ))}
+                      <option value="">Select company type</option>
+                      {companyTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || form.services.length === 0}
-              >
-                {loading ? 'Setting up...' : 'Complete Setup'}
-              </Button>
-              {error && <div className="text-red-600 text-sm mt-2">Error: {error}</div>}
-              {success && <div className="text-green-600 text-sm mt-2">{success}</div>}
-            </form>
-          </CardContent>
-        </Card>
+
+                {/* Company Description */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Company Description</h3>
+                  
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={form.description}
+                      onChange={handleChange}
+                      placeholder="Describe your company and services..."
+                      rows={4}
+                    />
+                  </div>
+                </div>
+
+                {/* Services Offered */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Services Offered</h3>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {availableServices.map(service => (
+                      <div key={service} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={service}
+                          checked={form.services.includes(service)}
+                          onCheckedChange={() => handleServiceToggle(service)}
+                        />
+                        <Label htmlFor={service} className="text-sm">{service}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pricing */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Pricing</h3>
+                  
+                  <div>
+                    <Label htmlFor="priceRange">Price Range</Label>
+                    <select
+                      id="priceRange"
+                      name="priceRange"
+                      value={form.priceRange}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select price range</option>
+                      {priceRanges.map(range => (
+                        <option key={range} value={range}>{range}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="pt-6">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    {loading ? 'Creating Profile...' : 'Create Company Profile'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

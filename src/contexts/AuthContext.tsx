@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useApolloClient, gql } from '@apollo/client';
+import { apiClient } from '../api/client';
 
 interface User {
   id: string;
@@ -31,69 +31,9 @@ export const useAuth = () => {
   return context;
 };
 
-const API_BASE = 'http://localhost:5002/graphql';
-
-const ME_QUERY = gql`
-  query Me {
-    me {
-      id
-      email
-      full_name
-      phone
-      address
-      role
-    }
-  }
-`;
-
-const LOGIN_MUTATION = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      token
-      user {
-        id
-        email
-        full_name
-        phone
-        address
-        role
-      }
-    }
-  }
-`;
-
-const REGISTER_MUTATION = gql`
-  mutation Register($email: String!, $password: String!, $full_name: String, $role: String) {
-    register(email: $email, password: $password, full_name: $full_name, role: $role) {
-      token
-      user {
-        id
-        email
-        full_name
-        phone
-        address
-        role
-      }
-    }
-  }
-`;
-
-const UPDATE_PROFILE_MUTATION = gql`
-  mutation UpdateProfile($full_name: String, $phone: String, $address: String) {
-    updateProfile(full_name: $full_name, phone: $phone, address: $address) {
-      id
-      email
-      full_name
-      phone
-      address
-    }
-  }
-`;
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const client = useApolloClient();
 
   // Helper: Get JWT from localStorage
   const getToken = () => localStorage.getItem('token');
@@ -112,25 +52,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     setLoading(true);
-    client
-      .query({ query: ME_QUERY, fetchPolicy: 'network-only' })
+    apiClient.getCurrentUser()
       .then((res) => {
-        setUser(res.data.me);
+        setUser(res.user);
       })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line
   }, []);
 
   // Sign in
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const res = await client.mutate({
-        mutation: LOGIN_MUTATION,
-        variables: { email, password },
-      });
-      const { token, user } = res.data.login;
+      const res = await apiClient.login(email, password);
+      const { token, user } = res;
       setToken(token);
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
@@ -149,13 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName?: string, role?: string) => {
     setLoading(true);
     try {
-      console.log('SIGNUP mutation variables:', { email, password, full_name: fullName, role });
-      const res = await client.mutate({
-        mutation: REGISTER_MUTATION,
-        variables: { email, password, full_name: fullName, role },
-      });
-      console.log('SIGNUP mutation response:', res);
-      const { token, user } = res.data.register;
+      console.log('SIGNUP request data:', { email, password, full_name: fullName, role });
+      const res = await apiClient.register({ email, password, full_name: fullName, role });
+      console.log('SIGNUP response:', res);
+      const { token, user } = res;
       setToken(token);
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
@@ -180,11 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return { error: 'Not authenticated' };
     setLoading(true);
     try {
-      const res = await client.mutate({
-        mutation: UPDATE_PROFILE_MUTATION,
-        variables: updates,
-      });
-      setUser(res.data.updateProfile);
+      const res = await apiClient.updateUserProfile(updates);
+      setUser(res.user);
       setLoading(false);
       return { error: null };
     } catch (error: any) {

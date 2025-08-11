@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { gql, useApolloClient } from '@apollo/client';
+import { apiClient } from '@/api/client';
 
 interface RoomData {
   floor: string;
@@ -20,37 +20,10 @@ interface MovingData {
   company?: any;
 }
 
-const CREATE_BOOKING_MUTATION = gql`
-  mutation CreateMovingBooking(
-    $rooms: [RoomInput],
-    $items: JSON,
-    $dateTime: Date,
-    $dateTimeFlexible: String,
-    $addresses: AddressInput,
-    $contact: ContactInput,
-    $company: CompanyInput
-  ) {
-    createMovingBooking(
-      rooms: $rooms,
-      items: $items,
-      dateTime: $dateTime,
-      dateTimeFlexible: $dateTimeFlexible,
-      addresses: $addresses,
-      contact: $contact,
-      company: $company
-    ) {
-      id
-      status
-      createdAt
-    }
-  }
-`;
-
 export const useBookingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const client = useApolloClient();
 
   const formatDateTime = (dateTime: any) => {
     if (!dateTime) return null;
@@ -99,6 +72,7 @@ export const useBookingSubmission = () => {
       } else {
         dateTime = formattedDateTime;
       }
+
       // Map company to match CompanyInput
       let companyInput = null;
       if (data.company) {
@@ -114,9 +88,11 @@ export const useBookingSubmission = () => {
           image_url: data.company.image_url || '',
           contact_phone: data.company.contact_phone || data.company.phone || '',
           contact_email: data.company.contact_email || data.company.email || '',
+          companyType: data.company.companyType || 'Moving'
         };
       }
-      const bookingVariables = {
+
+      const bookingData = {
         rooms: data.rooms,
         items: data.items,
         dateTime,
@@ -125,21 +101,20 @@ export const useBookingSubmission = () => {
         contact: data.contact,
         company: companyInput
       };
-      console.log('Submitting booking with variables:', bookingVariables);
-      await client.mutate({
-        mutation: CREATE_BOOKING_MUTATION,
-        variables: bookingVariables
-      });
+
+      const response = await apiClient.createMovingBooking(bookingData);
+      
       toast({
-        title: "Booking submitted successfully!",
-        description: "Your moving request has been received. We'll contact you soon.",
+        title: "Moving booking submitted!",
+        description: "Your moving request has been submitted successfully. We'll contact you soon.",
       });
-      return true;
+      
+      return response;
     } catch (error: any) {
-      console.error('Booking submission error:', error);
+      console.error('Error submitting moving booking:', error);
       toast({
         title: "Submission failed",
-        description: error.message || "There was an error submitting your booking. Please try again.",
+        description: error.message || "Failed to submit moving booking. Please try again.",
         variant: "destructive",
       });
       return false;
@@ -150,6 +125,6 @@ export const useBookingSubmission = () => {
 
   return {
     submitBooking,
-    isSubmitting
+    isSubmitting,
   };
 };

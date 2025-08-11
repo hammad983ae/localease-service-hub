@@ -1,0 +1,35 @@
+{
+  "name": "localease-service-hub-backend",
+  "version": "1.0.0",
+  "description": "Backend REST API for Localease Service Hub",
+  "main": "server-integrated.cjs",
+  "scripts": {
+    "start": "node server-integrated.cjs",
+    "dev": "nodemon server-integrated.cjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "localease",
+    "service-hub",
+    "rest-api",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
+  "author": "Localease Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.6.3",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
