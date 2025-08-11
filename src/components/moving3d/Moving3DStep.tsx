@@ -11,6 +11,7 @@ import { ROOM_CATALOG } from '@/data/roomTypes';
 import { Building } from './Building';
 import { FloorRoomsOverlay } from './FloorRoomsOverlay';
 import { RoomItemsPanel } from './RoomItemsPanel';
+import { FloorInterior } from './FloorInterior';
 
 export interface RoomData {
   floor: string;
@@ -89,6 +90,14 @@ export const Moving3DStep: React.FC<Moving3DStepProps> = ({ rooms, items, onRoom
                 infiniteGrid
               />
               <Building floors={floors} selectedFloor={selectedFloor} onSelectFloor={(f) => { setSelectedFloor(f); setSelectedRoom(null); }} />
+              {selectedFloor && (
+                <FloorInterior
+                  floorId={selectedFloor}
+                  y={floors.findIndex((fl) => fl.id === selectedFloor) * 1.2}
+                  selectedRoom={selectedRoom}
+                  onSelectRoom={(roomId) => setSelectedRoom(roomId)}
+                />
+              )}
               <ContactShadows position={[0, -0.6, 0]} opacity={0.35} scale={30} blur={1.8} />
               <OrbitControls enablePan enableZoom enableRotate />
             </Canvas>
