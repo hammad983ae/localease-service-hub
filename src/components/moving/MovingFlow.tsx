@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, ArrowLeft, ArrowRight } from 'lucide-react';
-import MovingQuoteForm from './MovingQuoteForm';
+import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import MovingSuppliers from './MovingSuppliers';
-import RoomSelection from './RoomSelection';
-import ItemSelection from './ItemSelection';
+import Moving3DStep from '@/components/moving3d/Moving3DStep';
 import AddressSelection from './AddressSelection';
 import DateTimeContactForm from './DateTimeContactForm';
 import BookingSummary from './BookingSummary';
