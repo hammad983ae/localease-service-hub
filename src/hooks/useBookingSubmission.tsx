@@ -76,13 +76,14 @@ export const useBookingSubmission = () => {
       // Map company to match CompanyInput
       let companyInput = null;
       if (data.company) {
+        console.log('🔍 useBookingSubmission: Company data found:', data.company);
         companyInput = {
-          id: data.company.id,
+          id: data.company.id || data.company._id, // Use _id as fallback
           name: data.company.name,
           description: data.company.description || '',
           rating: data.company.rating || 0,
           total_reviews: data.company.total_reviews || 0,
-          location: data.company.location || '',
+          location: data.company.location || data.company.address || '',
           services: data.company.services || [],
           price_range: data.company.price_range || data.company.priceRange || '',
           image_url: data.company.image_url || '',
@@ -90,6 +91,9 @@ export const useBookingSubmission = () => {
           contact_email: data.company.contact_email || data.company.email || '',
           companyType: data.company.companyType || 'Moving'
         };
+        console.log('🔍 useBookingSubmission: Mapped company input:', companyInput);
+      } else {
+        console.log('🔍 useBookingSubmission: No company data found in:', data);
       }
 
       const bookingData = {
@@ -101,6 +105,9 @@ export const useBookingSubmission = () => {
         contact: data.contact,
         company: companyInput
       };
+
+      console.log('🔍 useBookingSubmission: Final booking data being sent:', bookingData);
+      console.log('🔍 useBookingSubmission: Company in booking data:', companyInput);
 
       const response = await apiClient.createMovingBooking(bookingData);
       

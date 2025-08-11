@@ -29,7 +29,9 @@ interface MovingData {
 }
 
 const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
+  console.log('🔍 MovingFlow: Initialized with type:', type);
   const [currentStep, setCurrentStep] = useState<Step>(type === 'supplier' ? 'supplier' : 'rooms');
+  console.log('🔍 MovingFlow: Initial currentStep:', currentStep);
   const [movingData, setMovingData] = useState<MovingData>({
     rooms: [],
     items: {},
@@ -51,6 +53,9 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
     ? ['supplier', 'rooms', 'addresses', 'datetime-contact', 'summary']
     : ['rooms', 'addresses', 'datetime-contact', 'quote-form'];
   
+  console.log('🔍 MovingFlow: Steps array:', steps);
+  console.log('🔍 MovingFlow: Current step index:', steps.indexOf(currentStep));
+  
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
@@ -71,7 +76,12 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   };
 
   const updateData = (stepData: Partial<MovingData>) => {
-    setMovingData(prev => ({ ...prev, ...stepData }));
+    console.log('🔍 MovingFlow: updateData called with:', stepData);
+    setMovingData(prev => {
+      const newData = { ...prev, ...stepData };
+      console.log('🔍 MovingFlow: Updated movingData:', newData);
+      return newData;
+    });
   };
 
   const handleSubmit = async () => {
@@ -82,7 +92,9 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   };
 
   const handleSupplierSelect = (supplier: any) => {
+    console.log('🔍 MovingFlow: Supplier selected:', supplier);
     updateData({ company: supplier });
+    console.log('🔍 MovingFlow: Updated movingData:', { ...movingData, company: supplier });
     handleNext();
   };
 
@@ -160,6 +172,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
           />
         );
       case 'summary':
+        console.log('🔍 MovingFlow: Rendering summary step with data:', movingData);
         return (
           <div className="space-y-6">
             <BookingSummary data={movingData} />

@@ -10,17 +10,54 @@ const router = express.Router();
 router.post('/moving', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const bookingData = { ...req.body, userId };
+    const { company, ...otherData } = req.body;
+    
+    console.log('🔍 Moving booking creation request:', {
+      userId,
+      hasCompany: !!company,
+      companyData: company,
+      companyId: company?.id,
+      companyType: company?.companyType,
+      fullBody: req.body
+    });
+
+    let bookingData = { ...otherData, userId };
+    
+    // If company is selected (Book Service flow), assign to company
+    if (company && company.id) {
+      console.log('✅ Company selected, assigning booking to company:', company.id);
+      console.log('📝 Company details:', {
+        id: company.id,
+        name: company.name,
+        companyType: company.companyType
+      });
+      bookingData.companyId = company.id;
+      bookingData.status = 'pending_company_approval'; // Company needs to approve
+      bookingData.bookingType = 'company_booking';
+    } else {
+      console.log('📝 No company selected, this is a quote request');
+      bookingData.status = 'pending'; // Admin needs to review
+      bookingData.bookingType = 'quote_request';
+    }
+    
+    console.log('📝 Final booking data:', bookingData);
     
     const booking = new MovingBooking(bookingData);
     await booking.save();
     
+    console.log('✅ Moving booking created successfully:', booking._id);
+    
     res.status(201).json({ 
-      message: 'Moving booking created successfully',
+      message: company ? 'Moving booking submitted to company for approval' : 'Moving quote request submitted successfully',
       booking: booking.toObject()
     });
   } catch (error) {
-    console.error('Moving booking creation error:', error);
+    console.error('❌ Moving booking creation error:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to create moving booking' });
   }
 });
@@ -29,17 +66,41 @@ router.post('/moving', async (req, res) => {
 router.post('/disposal', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const bookingData = { ...req.body, userId };
+    const { company, ...otherData } = req.body;
+    
+    console.log('🔍 Disposal booking creation request:', {
+      userId,
+      hasCompany: !!company,
+      companyData: company
+    });
+
+    let bookingData = { ...otherData, userId };
+    
+    // If company is selected (Book Service flow), assign to company
+    if (company && company.id) {
+      console.log('✅ Company selected, assigning disposal booking to company:', company.id);
+      bookingData.companyId = company.id;
+      bookingData.status = 'pending_company_approval'; // Company needs to approve
+      bookingData.bookingType = 'company_booking';
+    } else {
+      console.log('📝 No company selected, this is a quote request');
+      bookingData.status = 'pending'; // Admin needs to review
+      bookingData.bookingType = 'quote_request';
+    }
+    
+    console.log('📝 Final disposal booking data:', bookingData);
     
     const booking = new DisposalBooking(bookingData);
     await booking.save();
     
+    console.log('✅ Disposal booking created successfully:', booking._id);
+    
     res.status(201).json({ 
-      message: 'Disposal booking created successfully',
+      message: company ? 'Disposal booking submitted to company for approval' : 'Disposal quote request submitted successfully',
       booking: booking.toObject()
     });
   } catch (error) {
-    console.error('Disposal booking creation error:', error);
+    console.error('❌ Disposal booking creation error:', error);
     res.status(500).json({ error: 'Failed to create disposal booking' });
   }
 });
@@ -48,17 +109,41 @@ router.post('/disposal', async (req, res) => {
 router.post('/transport', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const bookingData = { ...req.body, userId };
+    const { company, ...otherData } = req.body;
+    
+    console.log('🔍 Transport booking creation request:', {
+      userId,
+      hasCompany: !!company,
+      companyData: company
+    });
+
+    let bookingData = { ...otherData, userId };
+    
+    // If company is selected (Book Service flow), assign to company
+    if (company && company.id) {
+      console.log('✅ Company selected, assigning transport booking to company:', company.id);
+      bookingData.companyId = company.id;
+      bookingData.status = 'pending_company_approval'; // Company needs to approve
+      bookingData.bookingType = 'company_booking';
+    } else {
+      console.log('📝 No company selected, this is a quote request');
+      bookingData.status = 'pending'; // Admin needs to review
+      bookingData.bookingType = 'quote_request';
+    }
+    
+    console.log('📝 Final transport booking data:', bookingData);
     
     const booking = new TransportBooking(bookingData);
     await booking.save();
     
+    console.log('✅ Transport booking created successfully:', booking._id);
+    
     res.status(201).json({ 
-      message: 'Transport booking created successfully',
+      message: company ? 'Transport booking submitted to company for approval' : 'Transport quote request submitted successfully',
       booking: booking.toObject()
     });
   } catch (error) {
-    console.error('Transport booking creation error:', error);
+    console.error('❌ Transport booking creation error:', error);
     res.status(500).json({ error: 'Failed to create transport booking' });
   }
 });

@@ -32,6 +32,7 @@ const CompanySchema = new mongoose.Schema({
 
 const DisposalBookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' }, // Company assigned to this booking
   serviceType: { type: String, required: true },
   items: [DisposalItemSchema],
   dateTime: Date,
@@ -43,8 +44,9 @@ const DisposalBookingSchema = new mongoose.Schema({
     phone: String,
     notes: String
   },
-  company: CompanySchema,
+  company: CompanySchema, // Company details (legacy field)
   status: { type: String, default: 'pending' },
+  bookingType: { type: String, default: 'quote_request' }, // 'quote_request' or 'company_booking'
   estimatedCost: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });

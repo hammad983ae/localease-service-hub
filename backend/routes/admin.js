@@ -451,10 +451,50 @@ router.patch('/bookings/:type/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
     
-    // If booking is approved, create a chat room automatically
+    // If booking is approved, assign to company and create a chat room automatically
     if (status === 'approved') {
-      console.log('🎯 Attempting to create chat room for approved booking:', id);
+      console.log('🎯 Attempting to assign approved booking to company and create chat room:', id);
       try {
+        // Find available companies for this service type
+        let availableCompanies = [];
+        switch (type) {
+          case 'moving':
+            availableCompanies = await Company.find({ 
+              services: { $in: ['moving', 'relocation'] },
+              isActive: true 
+            }).sort({ rating: -1, createdAt: 1 });
+            break;
+          case 'disposal':
+            availableCompanies = await Company.find({ 
+              services: { $in: ['disposal', 'waste-removal'] },
+              isActive: true 
+            }).sort({ rating: -1, createdAt: 1 });
+            break;
+          case 'transport':
+            availableCompanies = await Company.find({ 
+              services: { $in: ['transport', 'delivery'] },
+              isActive: true 
+            }).sort({ rating: -1, createdAt: 1 });
+            break;
+        }
+
+        if (availableCompanies.length === 0) {
+          console.log('⚠️ No available companies found for service type:', type);
+          // Still create chat room but without company assignment
+        } else {
+          // Assign to the first available company (best rated or oldest)
+          const assignedCompany = availableCompanies[0];
+          console.log('🏢 Assigning booking to company:', assignedCompany._id, assignedCompany.name);
+          
+          // Update booking with company assignment
+          await model.findByIdAndUpdate(id, { 
+            companyId: assignedCompany._id,
+            assignedAt: new Date()
+          });
+          
+          console.log('✅ Booking assigned to company successfully');
+        }
+
         // Check if chat room already exists
         const existingChatRoom = await ChatRoom.findOne({
           bookingId: id,
@@ -468,7 +508,7 @@ router.patch('/bookings/:type/:id/status', async (req, res) => {
           console.log('🏗️ Creating new chat room...');
           
           // Create new chat room
-          const chatRoom = new ChatRoom({
+          const chatRoomData = {
             bookingId: id,
             bookingType: type,
             userId: booking.userId._id,
@@ -476,15 +516,17 @@ router.patch('/bookings/:type/:id/status', async (req, res) => {
             chatType: 'admin_user',
             status: 'active',
             isActive: true
-          });
+          };
+
+          // Add company to chat room if assigned
+          if (availableCompanies.length > 0) {
+            chatRoomData.companyId = availableCompanies[0]._id;
+            chatRoomData.chatType = 'admin_user_company';
+          }
           
-          console.log('📝 Chat room data:', {
-            bookingId: id,
-            bookingType: type,
-            userId: booking.userId._id,
-            adminId: req.user.userId,
-            chatType: 'admin_user'
-          });
+          const chatRoom = new ChatRoom(chatRoomData);
+          
+          console.log('📝 Chat room data:', chatRoomData);
           
           await chatRoom.save();
           console.log('✅ Chat room saved successfully:', chatRoom._id);

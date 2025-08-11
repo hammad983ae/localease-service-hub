@@ -10,7 +10,10 @@ const NotificationSound: React.FC = () => {
     // Play notification sound when unread count increases
     if (unreadCount > prevUnreadCount.current && unreadCount > 0) {
       if (audioRef.current) {
-        audioRef.current.play().catch(console.error);
+        audioRef.current.play().catch((error) => {
+          // Silently handle audio play errors (e.g., missing file)
+          console.debug('Notification sound could not be played:', error.message);
+        });
       }
     }
     prevUnreadCount.current = unreadCount;
@@ -19,11 +22,12 @@ const NotificationSound: React.FC = () => {
   return (
     <audio
       ref={audioRef}
-      preload="auto"
+      preload="none"
       style={{ display: 'none' }}
     >
       <source src="/notification.mp3" type="audio/mpeg" />
       <source src="/notification.wav" type="audio/wav" />
+      {/* Fallback: no audio file needed */}
     </audio>
   );
 };

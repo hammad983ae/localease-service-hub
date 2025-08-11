@@ -46,7 +46,8 @@ import Chat from '@/components/Chat';
 // TypeScript Interfaces
 interface Booking {
   id: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  status: 'pending' | 'pending_company_approval' | 'approved' | 'rejected' | 'completed';
+  bookingType?: string;
   createdAt: string;
   dateTime?: string;
   dateTimeFlexible?: string;
@@ -108,8 +109,9 @@ interface DashboardStats {
 const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
   switch (status) {
     case 'pending':
+    case 'pending_company_approval':
       return <Clock className="h-4 w-4 text-yellow-500" />;
-    case 'accepted':
+    case 'approved':
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     case 'rejected':
       return <XCircle className="h-4 w-4 text-red-500" />;
@@ -123,11 +125,17 @@ const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': 
+      case 'pending_company_approval': 
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved': 
+        return 'bg-green-100 text-green-800';
+      case 'rejected': 
+        return 'bg-red-100 text-red-800';
+      case 'completed': 
+        return 'bg-blue-100 text-blue-800';
+      default: 
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -223,7 +231,9 @@ const StatsGrid: React.FC<{ stats: DashboardStats }> = ({ stats }) => (
 const BookingItem: React.FC<{
   booking: Booking;
   onChatClick: (bookingId: string) => void;
-}> = ({ booking, onChatClick }) => (
+  onApprove?: (bookingId: string) => void;
+  onReject?: (bookingId: string) => void;
+}> = ({ booking, onChatClick, onApprove, onReject }) => (
   <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
     <div className="flex items-center space-x-4">
       <div className="p-2 bg-blue-100 rounded-lg">
@@ -239,14 +249,44 @@ const BookingItem: React.FC<{
             {booking.addresses.from} → {booking.addresses.to}
           </p>
         )}
+        <p className="text-xs text-muted-foreground">
+          Type: {booking.bookingType || 'Unknown'} • Status: {booking.status}
+        </p>
       </div>
     </div>
     <div className="flex items-center space-x-2">
       <StatusBadge status={booking.status} />
-      <Button variant="outline" size="sm" onClick={() => onChatClick(booking.id)}>
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Chat
-      </Button>
+      
+      {/* Show approval buttons only for pending company approval bookings */}
+      {booking.status === 'pending_company_approval' && onApprove && onReject && (
+        <>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => onApprove(booking.id)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Approve
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => onReject(booking.id)}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Reject
+          </Button>
+        </>
+      )}
+      
+      {/* Show chat button for approved bookings */}
+      {booking.status === 'approved' && (
+        <Button variant="outline" size="sm" onClick={() => onChatClick(booking.id)}>
+          <MessageCircle className="h-4 w-4 mr-2" />
+          Chat
+        </Button>
+      )}
     </div>
   </div>
 );
@@ -350,8 +390,8 @@ const CompanyDashboard: React.FC = () => {
   // Calculate dashboard stats
   const stats: DashboardStats = {
     totalRequests: bookings.length,
-    pendingRequests: bookings.filter(b => b.status === 'pending').length,
-    acceptedRequests: bookings.filter(b => b.status === 'accepted').length,
+    pendingRequests: bookings.filter(b => b.status === 'pending' || b.status === 'pending_company_approval').length,
+    acceptedRequests: bookings.filter(b => b.status === 'approved').length,
     completedRequests: bookings.filter(b => b.status === 'completed').length,
     rating: 4.8,
     totalReviews: 127,
@@ -366,9 +406,19 @@ const CompanyDashboard: React.FC = () => {
   const handleRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
     try {
       await apiClient[action === 'approve' ? 'approveCompanyBooking' : 'rejectCompanyBooking'](requestId, 'moving');
-      // Refresh data
-      const bookingsData = await apiClient.getCompanyBookings();
+      // Refresh all data including chat rooms
+      const [bookingsData, chatData, invoicesData] = await Promise.all([
+        apiClient.getCompanyBookings(),
+        apiClient.getCompanyChatRooms(),
+        apiClient.getCompanyInvoices()
+      ]);
+      
       setBookings(bookingsData.bookings || []);
+      setChatRooms(chatData.chatRooms || []);
+      setInvoices(invoicesData.invoices || []);
+      
+      console.log('🔍 CompanyDashboard: Refreshed data after', action);
+      console.log('🔍 CompanyDashboard: Chat rooms:', chatData.chatRooms);
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
     }
@@ -383,6 +433,20 @@ const CompanyDashboard: React.FC = () => {
   };
 
   const handleChatWithCustomer = (bookingId: string) => {
+    console.log('🔍 CompanyDashboard: handleChatWithCustomer called with bookingId:', bookingId);
+    console.log('🔍 CompanyDashboard: Current chatRooms:', chatRooms);
+    console.log('🔍 CompanyDashboard: Looking for chat room with bookingId:', bookingId);
+    
+    // Debug each chat room to see the structure
+    chatRooms.forEach((room, index) => {
+      console.log(`🔍 CompanyDashboard: Chat room ${index}:`, {
+        id: room.id,
+        bookingId: room.bookingId,
+        bookingType: room.bookingType,
+        fullRoom: room
+      });
+    });
+    
     setActiveChat(bookingId);
   };
 
@@ -417,7 +481,14 @@ const CompanyDashboard: React.FC = () => {
     );
   }
 
-  const currentActiveChatRoom = chatRooms.find(room => room.bookingId === activeChat);
+  const currentActiveChatRoom = chatRooms.find(room => {
+    console.log('🔍 CompanyDashboard: Comparing room.bookingId:', room.bookingId, 'with activeChat:', activeChat);
+    console.log('🔍 CompanyDashboard: Types - room.bookingId:', typeof room.bookingId, 'activeChat:', typeof activeChat);
+    console.log('🔍 CompanyDashboard: Equality check:', room.bookingId === activeChat);
+    return room.bookingId === activeChat;
+  });
+  
+  console.log('🔍 CompanyDashboard: currentActiveChatRoom found:', currentActiveChatRoom);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -441,6 +512,8 @@ const CompanyDashboard: React.FC = () => {
                   key={booking.id}
                   booking={booking}
                   onChatClick={handleChatWithCustomer}
+                  onApprove={handleApproveRequest}
+                  onReject={handleRejectRequest}
                 />
               ))}
               {bookings.length === 0 && (
@@ -506,22 +579,45 @@ const CompanyDashboard: React.FC = () => {
       </Card>
 
       {/* Chat Interface */}
-      {activeChat && currentActiveChatRoom && (
+      {activeChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">
-                Chat for Booking #{currentActiveChatRoom.bookingId}
+                Chat for Booking #{activeChat}
               </h3>
               <Button variant="ghost" size="sm" onClick={handleCloseChat}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex-1">
-              <Chat
-                chatRoomId={currentActiveChatRoom.id}
-                onClose={handleCloseChat}
-              />
+              {currentActiveChatRoom ? (
+                <Chat
+                  chatRoomData={currentActiveChatRoom}
+                  onClose={handleCloseChat}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Chat Room Not Found</h3>
+                    <p className="text-muted-foreground">
+                      Chat room for this booking is being created. Please wait a moment and try again.
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Available chat rooms: {chatRooms.length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Looking for booking ID: {activeChat}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Chat room IDs: {chatRooms.map(r => r.bookingId).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

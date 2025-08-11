@@ -36,7 +36,10 @@ const Moving: React.FC = () => {
       
       const selection = await getServiceSelection('moving');
       if (selection) {
+        console.log('🔍 Moving page: Found previous selection:', selection);
         setSelectedType(selection.selection_type as 'quote' | 'supplier');
+      } else {
+        console.log('🔍 Moving page: No previous selection found');
       }
     };
     
@@ -47,10 +50,13 @@ const Moving: React.FC = () => {
   const firstName = userName.split(' ')[0];
 
   const handleTypeSelection = (type: 'quote' | 'supplier') => {
+    console.log('🔍 Moving page: handleTypeSelection called with type:', type);
     setSelectedType(type);
+    console.log('🔍 Moving page: selectedType set to:', type);
   };
 
   if (selectedType) {
+    console.log('🔍 Moving page: Rendering MovingFlow with type:', selectedType);
     return (
       <MovingFlow
         type={selectedType}

@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { apiClient } from '@/api/client';
 
 interface Company {
-  id: string;
+  _id: string; // MongoDB ObjectId
   name: string;
   description: string;
   services: string[];
@@ -33,6 +33,12 @@ interface Supplier {
   estimatedTime: string;
   insurance: boolean;
   packingService: boolean;
+  // Additional fields for company identification
+  companyType: string;
+  _id: string;
+  description: string;
+  priceRange: string;
+  address: string;
 }
 
 interface MovingSuppliersProps {
@@ -53,13 +59,18 @@ const MovingSuppliers: React.FC<MovingSuppliersProps> = ({ onSupplierSelect, sel
       try {
         setLoading(true);
         setError(null);
+        
+        console.log('🔍 MovingSuppliers: Starting to fetch companies...');
+        console.log('🔍 MovingSuppliers: Auth token:', localStorage.getItem('token'));
+        
         const response = await apiClient.getAllCompanies();
+        console.log('🔍 MovingSuppliers: Raw API response:', response);
         
         // Filter for moving companies and transform data
         const movingCompanies = (response.companies || [])
           .filter((company: Company) => company.companyType === 'Moving')
           .map((company: Company) => ({
-            id: company.id,
+            id: company._id, // Use _id from MongoDB
             name: company.name,
             rating: 4.5, // Default rating since it's not in the Company model
             reviews: 50, // Default reviews count
@@ -72,12 +83,19 @@ const MovingSuppliers: React.FC<MovingSuppliersProps> = ({ onSupplierSelect, sel
             features: company.description ? [company.description] : ['Professional moving services'],
             estimatedTime: '1-3 days', // Default estimate
             insurance: true, // Default to true for moving companies
-            packingService: company.services?.includes('Packing Services') || false
+            packingService: company.services?.includes('Packing Services') || false,
+            // Add these essential fields for company identification
+            companyType: company.companyType,
+            _id: company._id,
+            description: company.description,
+            priceRange: company.priceRange,
+            address: company.address
           }));
         
+        console.log('🔍 MovingSuppliers: Filtered moving companies:', movingCompanies);
         setSuppliers(movingCompanies);
       } catch (err: any) {
-        console.error('Error fetching suppliers:', err);
+        console.error('❌ MovingSuppliers: Error fetching suppliers:', err);
         setError(err.message || 'Failed to fetch suppliers');
       } finally {
         setLoading(false);
@@ -88,9 +106,12 @@ const MovingSuppliers: React.FC<MovingSuppliersProps> = ({ onSupplierSelect, sel
   }, []);
 
   const handleSelectSupplier = (supplierId: string) => {
+    console.log('🔍 MovingSuppliers: Supplier selected:', supplierId);
     setSelectedSupplier(supplierId);
     const supplier = suppliers.find(s => s.id === supplierId);
+    console.log('🔍 MovingSuppliers: Found supplier:', supplier);
     if (supplier && onSupplierSelect) {
+      console.log('🔍 MovingSuppliers: Calling onSupplierSelect with:', supplier);
       onSupplierSelect(supplier);
     }
   };

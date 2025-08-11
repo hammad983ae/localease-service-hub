@@ -51,13 +51,25 @@ router.get('/rooms/:roomId', async (req, res) => {
       return res.status(404).json({ error: 'Chat room not found' });
     }
     
+    console.log('🔍 Chat room access check:', {
+      userRole,
+      userId,
+      chatRoomUserId: chatRoom.userId?._id.toString(),
+      chatRoomCompanyId: chatRoom.companyId?._id.toString(),
+      hasAccess: userRole === 'admin' || 
+                chatRoom.userId?._id.toString() === userId || 
+                chatRoom.companyId?._id.toString() === userId
+    });
+    
     // Check if user has access to this chat room
     if (userRole === 'admin' || 
         chatRoom.userId?._id.toString() === userId || 
         chatRoom.companyId?._id.toString() === userId) {
       
+      console.log('✅ Chat room access granted for user:', { userRole, userId, chatRoomId: roomId });
       res.json(chatRoom);
     } else {
+      console.log('❌ Chat room access denied for user:', { userRole, userId, chatRoomId: roomId });
       res.status(403).json({ error: 'Access denied' });
     }
   } catch (error) {
@@ -81,11 +93,24 @@ router.get('/rooms/:roomId/messages', async (req, res) => {
       return res.status(404).json({ error: 'Chat room not found' });
     }
     
+    console.log('🔍 Chat access check:', {
+      userRole,
+      userId,
+      chatRoomUserId: chatRoom.userId?.toString(),
+      chatRoomCompanyId: chatRoom.companyId?.toString(),
+      hasAccess: userRole === 'admin' || 
+                chatRoom.userId?.toString() === userId || 
+                chatRoom.companyId?.toString() === userId
+    });
+    
     if (userRole !== 'admin' && 
         chatRoom.userId?.toString() !== userId && 
         chatRoom.companyId?.toString() !== userId) {
+      console.log('❌ Access denied for user:', { userRole, userId, chatRoomId: roomId });
       return res.status(403).json({ error: 'Access denied' });
     }
+    
+    console.log('✅ Access granted for user:', { userRole, userId, chatRoomId: roomId });
     
     const skip = (page - 1) * limit;
     

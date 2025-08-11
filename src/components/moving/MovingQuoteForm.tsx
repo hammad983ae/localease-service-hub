@@ -118,22 +118,28 @@ const MovingQuoteForm: React.FC<MovingQuoteFormProps> = ({ onSubmit, initialData
           phone: initialData.contact.phone,
           notes: additionalNotes
         },
-        status: 'pending' // This will be a quote request that needs admin approval
+        // Include company data if it exists (for Book Services flow)
+        ...(initialData.company && { company: initialData.company })
+        // Remove hardcoded status - let backend determine based on company selection
       };
 
-      console.log('Submitting booking data:', bookingData);
-      console.log('Initial data received:', initialData);
-      console.log('User data:', user);
-      console.log('Auth token:', localStorage.getItem('token'));
-      console.log('Formatted dateTime:', formattedDateTime);
+      console.log('🔍 Frontend Debug - Submitting booking data:', bookingData);
+      console.log('🔍 Frontend Debug - Initial data received:', initialData);
+      console.log('🔍 Frontend Debug - Company data:', initialData.company);
+      console.log('🔍 Frontend Debug - User data:', user);
+      console.log('🔍 Frontend Debug - Auth token:', localStorage.getItem('token'));
+      console.log('🔍 Frontend Debug - Formatted dateTime:', formattedDateTime);
 
       // Submit the booking
       const response = await apiClient.createMovingBooking(bookingData);
       
       if (response) {
+        const isCompanyBooking = !!initialData.company;
         toast({
-          title: "Quote request submitted!",
-          description: "Your moving quote request has been submitted and is pending admin approval. We'll notify you once it's reviewed.",
+          title: isCompanyBooking ? "Moving booking submitted!" : "Quote request submitted!",
+          description: isCompanyBooking 
+            ? "Your moving request has been submitted to the company for approval. We'll contact you soon."
+            : "Your moving quote request has been submitted and is pending admin approval. We'll notify you once it's reviewed.",
         });
         
         // Call the success callback if provided

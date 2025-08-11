@@ -74,6 +74,12 @@ router.get('/:id', async (req, res) => {
 // Create company profile
 router.post('/', async (req, res) => {
   try {
+    console.log('🔍 Company creation request received:', {
+      body: req.body,
+      user: req.user,
+      headers: req.headers
+    });
+
     const {
       name,
       email,
@@ -88,9 +94,15 @@ router.post('/', async (req, res) => {
     // Check if company already exists with this email
     const existingCompany = await Company.findOne({ email });
     if (existingCompany) {
+      console.log('❌ Company with email already exists:', email);
       return res.status(400).json({ error: 'Company with this email already exists' });
     }
     
+    console.log('✅ Creating new company with data:', {
+      name, email, phone, address, description, services, priceRange, companyType,
+      userId: req.user.userId
+    });
+
     const company = new Company({
       name,
       email,
@@ -99,17 +111,25 @@ router.post('/', async (req, res) => {
       description,
       services,
       priceRange,
-      companyType
+      companyType,
+      userId: req.user.userId // Add the userId from the authenticated user
     });
     
+    console.log('💾 Saving company to database...');
     await company.save();
+    console.log('✅ Company saved successfully:', company._id);
     
     res.status(201).json({
       message: 'Company profile created successfully',
       company
     });
   } catch (error) {
-    console.error('Company creation error:', error);
+    console.error('❌ Company creation error:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: 'Failed to create company profile' });
   }
 });

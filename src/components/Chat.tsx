@@ -56,9 +56,10 @@ interface ChatProps {
   onClose: () => void;
   selectedChatRoomId?: string;
   chatRoomId?: string;
+  chatRoomData?: any; // Add this to pass chat room data directly
 }
 
-const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId }) => {
+const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId, chatRoomData }) => {
   const providedRoomId = selectedChatRoomId || chatRoomId;
   const { user } = useAuth();
   const [message, setMessage] = useState('');
@@ -73,6 +74,15 @@ const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId }) 
   const inputRef = useRef<HTMLInputElement>(null);
   const currentChatRoomRef = useRef<string | null>(null);
   const isEmbedded = Boolean(providedRoomId);
+  
+  // If chatRoomData is provided, use it directly
+  useEffect(() => {
+    if (chatRoomData) {
+      console.log('🔍 Chat: Using provided chatRoomData:', chatRoomData);
+      setSelectedChatRoom(chatRoomData);
+      setLoading(false);
+    }
+  }, [chatRoomData]);
   // Fetch user's chat rooms
   useEffect(() => {
     const fetchChatRooms = async () => {

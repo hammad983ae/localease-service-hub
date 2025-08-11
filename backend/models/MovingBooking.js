@@ -22,6 +22,7 @@ const CompanySchema = new mongoose.Schema({
 
 const MovingBookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' }, // Company assigned to this booking
   rooms: [RoomSchema],
   items: { type: Map, of: Number },
   dateTime: Date, // for specific date/time
@@ -36,8 +37,9 @@ const MovingBookingSchema = new mongoose.Schema({
     phone: String,
     notes: String
   },
-  company: CompanySchema,
+  company: CompanySchema, // Company details (legacy field)
   status: { type: String, default: 'pending' },
+  bookingType: { type: String, default: 'quote_request' }, // 'quote_request' or 'company_booking'
   createdAt: { type: Date, default: Date.now }
 });
 
