@@ -16,7 +16,7 @@ interface MovingFlowProps {
   onBack: () => void;
 }
 
-type Step = 'supplier' | 'rooms' | 'items' | 'addresses' | 'datetime-contact' | 'summary';
+type Step = 'supplier' | 'rooms' | 'addresses' | 'datetime-contact' | 'summary';
 
 interface MovingData {
   rooms: any[];
@@ -47,8 +47,8 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
   }, [type, saveServiceSelection]);
 
   const steps: Step[] = type === 'supplier' 
-    ? ['supplier', 'rooms', 'items', 'addresses', 'datetime-contact', 'summary']
-    : ['rooms', 'items', 'addresses', 'datetime-contact', 'summary'];
+    ? ['supplier', 'rooms', 'addresses', 'datetime-contact', 'summary']
+    : ['rooms', 'addresses', 'datetime-contact', 'summary'];
   
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
@@ -111,17 +111,11 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
         );
       case 'rooms':
         return (
-          <RoomSelection 
-            data={movingData.rooms}
-            onUpdate={(rooms) => updateData({ rooms })}
-          />
-        );
-      case 'items':
-        return (
-          <ItemSelection 
-            data={movingData.items}
+          <Moving3DStep
             rooms={movingData.rooms}
-            onUpdate={(items) => updateData({ items })}
+            items={movingData.items}
+            onRoomsUpdate={(rooms) => updateData({ rooms })}
+            onItemsUpdate={(items) => updateData({ items })}
           />
         );
       case 'addresses':
@@ -168,13 +162,11 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'supplier':
         return !!movingData.company;
       case 'rooms':
-        return movingData.rooms.length > 0;
-      case 'items':
-        return Object.keys(movingData.items).length > 0;
+        return movingData.rooms.length > 0; // items selected within 3D step
       case 'addresses':
-        return movingData.addresses.from && movingData.addresses.to;
+        return !!movingData.addresses.from && !!movingData.addresses.to;
       case 'datetime-contact':
-        return !!movingData.dateTime && movingData.contact.name && movingData.contact.email && movingData.contact.phone;
+        return !!movingData.dateTime && !!movingData.contact.name && !!movingData.contact.email && !!movingData.contact.phone;
       default:
         return true;
     }
@@ -185,9 +177,7 @@ const MovingFlow: React.FC<MovingFlowProps> = ({ type, onBack }) => {
       case 'supplier':
         return 'Choose a Moving Company';
       case 'rooms':
-        return 'Select Rooms & Floors';
-      case 'items':
-        return 'Select Items to Move';
+        return 'Explore Home: Floors, Rooms & Items';
       case 'addresses':
         return 'Moving Addresses';
       case 'datetime-contact':
