@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
-import { Edges } from '@react-three/drei';
+import { Edges, Text } from '@react-three/drei';
 
 interface BuildingProps {
   floors: { id: string; label: string }[];
@@ -33,11 +33,11 @@ export const Building: React.FC<BuildingProps> = ({ floors, selectedFloor, onSel
       <mesh position={[0, shellH / 2 - 0.2, 0]} castShadow receiveShadow>
         <boxGeometry args={[w + shellPadding, shellH, d + shellPadding]} />
         <meshStandardMaterial
-          color="hsl(210, 20%, 88%)"
+          color="hsl(210, 20%, 96%)"
           transparent
-          opacity={0.35}
-          metalness={0.1}
-          roughness={0.6}
+          opacity={0.25}
+          metalness={0.05}
+          roughness={0.7}
         />
         <Edges threshold={15} color="hsl(215, 20%, 60%)" />
       </mesh>
@@ -107,6 +107,27 @@ export const Building: React.FC<BuildingProps> = ({ floors, selectedFloor, onSel
         <meshStandardMaterial color="hsl(10, 50%, 45%)" metalness={0.1} roughness={0.7} />
         <Edges color="hsl(10, 45%, 35%)" />
       </mesh>
+
+      {/* Eaves (slight overhang under the roof) */}
+      <mesh position={[0, shellH + 0.2, 0]} castShadow>
+        <boxGeometry args={[w + 0.2, 0.1, d + 0.2]} />
+        <meshStandardMaterial color="hsl(10, 45%, 35%)" roughness={0.8} metalness={0.05} />
+      </mesh>
+
+      {/* Corner posts to read as structure */}
+      {([[-1, -1], [1, -1], [-1, 1], [1, 1]] as const).map(([sx, sz], i) => (
+        <mesh key={i} position={[sx * (w/2 + 0.02), shellH/2 - 0.2, sz * (d/2 + 0.02)]} castShadow>
+          <boxGeometry args={[0.12, shellH, 0.12]} />
+          <meshStandardMaterial color="hsl(210, 15%, 50%)" metalness={0.1} roughness={0.6} />
+        </mesh>
+      ))}
+
+      {/* Optional floor labels */}
+      {floors.map((f, idx) => (
+        <Text key={f.id} position={[-(w/2) + 0.2, floorY(idx) + 0.05, (d/2) + 0.25]} fontSize={0.22} color="hsl(215, 25%, 35%)">
+          {f.label}
+        </Text>
+      ))}
 
       {/* Ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
