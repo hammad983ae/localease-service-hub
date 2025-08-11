@@ -131,6 +131,7 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
     const chatRoom = chatRooms.find(room => room._id === chatRoomId);
     if (chatRoom) {
       setSelectedChatRoom(chatRoomId);
+      markAsRead(chatRoomId);
     }
   };
 
@@ -212,14 +213,15 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   }
 
   return (
-    <div className="flex h-[600px] bg-white rounded-lg shadow-lg">
+    <div className="flex h-[600px] bg-background rounded-lg shadow">
       {/* Chat Rooms List */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
+      <div className="w-80 border-r border-border flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center space-x-2">
             <MessageCircle className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Chats</h2>
+            {unreadCount > 0 && <Badge variant="secondary" className="ml-2">{unreadCount}</Badge>}
           </div>
           <Button size="sm" variant="outline">
             <Plus className="h-4 w-4 mr-2" />
@@ -228,7 +230,7 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -257,8 +259,8 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
                   key={room._id}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedChatRoom === room._id
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-accent border border-accent'
+                      : 'hover:bg-muted'
                   }`}
                   onClick={() => handleChatRoomClick(room._id)}
                 >
@@ -282,16 +284,14 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col items-end space-y-1">
-                      {room.isActive ? (
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      ) : (
-                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(room.updatedAt)}
-                      </span>
-                    </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        {unreadChats.has(room._id) && (
+                          <Badge variant="default" className="text-[10px] px-1.5 py-0.5">New</Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(room.updatedAt)}
+                        </span>
+                      </div>
                   </div>
                 </div>
               ))}
