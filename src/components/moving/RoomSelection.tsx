@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, Minus, Home, Check } from 'lucide-react';
+import { Plus, Minus, Home, Check, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IsometricMap, Room } from './IsometricMap';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ROOM_CATALOG } from '@/data/roomTypes';
 
 interface RoomSelectionProps {
   data: any[];
@@ -25,15 +28,16 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
     { id: 'second', label: t('floor.second'), icon: '🏗️', color: 'bg-purple-100' },
   ];
 
-  const roomTypes = {
+  const baseRoomTypes = {
     kitchen: { label: t('room.kitchen'), icon: '👨‍🍳', color: 'from-orange-400 to-red-500' },
     bedroom: { label: t('room.bedroom'), icon: '🛏️', color: 'from-blue-400 to-purple-500' },
     livingRoom: { label: t('room.livingRoom'), icon: '🛋️', color: 'from-green-400 to-blue-500' },
     bathroom: { label: t('room.bathroom'), icon: '🚿', color: 'from-cyan-400 to-blue-500' },
     office: { label: t('room.office'), icon: '💼', color: 'from-gray-400 to-gray-600' },
     garage: { label: t('room.garage'), icon: '🚗', color: 'from-yellow-400 to-orange-500' },
-  };
+  } as const;
 
+  const [searchTerm, setSearchTerm] = useState('');
   const toggleFloor = (floorId: string) => {
     setSelectedFloors(prev => 
       prev.includes(floorId) 
@@ -172,7 +176,8 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {Object.entries(roomTypes).map(([roomId, room]) => {
+                    {Object.keys(baseRoomTypes).map((roomId) => {
+                      const room = baseRoomTypes[roomId as keyof typeof baseRoomTypes];
                       const count = getRoomCount(floorId, roomId);
                       return (
                         <Card key={roomId} className="relative overflow-hidden">
@@ -204,6 +209,62 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({ data, onUpdate }) => {
                         </Card>
                       );
                     })}
+                  </div>
+
+                  {/* Extended room catalog */}
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h4 className="text-sm font-semibold">More rooms</h4>
+                      <div className="relative w-64">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search rooms..."
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+                    <ScrollArea className="h-56 rounded-md border">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-3">
+                        {ROOM_CATALOG
+                          .filter(r => !Object.keys(baseRoomTypes).includes(r.id))
+                          .filter(r => r.label.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((r) => {
+                            const count = getRoomCount(floorId, r.id);
+                            return (
+                              <Card key={r.id} className="relative overflow-hidden">
+                                <CardContent className="p-3 text-center">
+                                  <div className="text-2xl mb-1">{r.icon}</div>
+                                  <div className="text-xs font-medium mb-2 min-h-[2rem] flex items-center justify-center text-center">
+                                    {r.label}
+                                  </div>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => updateRoomCount(floorId, r.id, Math.max(0, count - 1))}
+                                      disabled={count === 0}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="w-6 text-center font-bold">{count}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => updateRoomCount(floorId, r.id, count + 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                      </div>
+                    </ScrollArea>
                   </div>
                 </CardContent>
               </Card>
