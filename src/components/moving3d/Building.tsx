@@ -14,7 +14,7 @@ export const Building: React.FC<BuildingProps> = ({ floors, selectedFloor, onSel
       {floors.map((f, idx) => {
         const y = idx * 1.4; // vertical spacing
         const isSelected = selectedFloor === f.id;
-        const color = isSelected ? '#54a0ff' : '#b0bec5';
+        const color = isSelected ? 'hsl(221, 83%, 53%)' : 'hsl(210, 14%, 70%)';
         return (
           <mesh
             key={f.id}
@@ -27,7 +27,7 @@ export const Building: React.FC<BuildingProps> = ({ floors, selectedFloor, onSel
             receiveShadow
           >
             <boxGeometry args={[6, 1, 6]} />
-            <meshStandardMaterial color={color} metalness={0.1} roughness={0.6} />
+            <meshStandardMaterial color={color} metalness={0.1} roughness={0.6} emissive={isSelected ? 'hsl(221, 83%, 60%)' : 'hsl(0, 0%, 0%)'} emissiveIntensity={isSelected ? 0.2 : 0} />
           </mesh>
         );
       })}
@@ -35,7 +35,7 @@ export const Building: React.FC<BuildingProps> = ({ floors, selectedFloor, onSel
       {/* Ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
         <planeGeometry args={[40, 40]} />
-        <meshStandardMaterial color="#e0e0e0" />
+        <meshStandardMaterial color="hsl(210, 20%, 90%)" />
       </mesh>
     </group>
   );

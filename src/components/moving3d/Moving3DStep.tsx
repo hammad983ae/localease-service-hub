@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Grid } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Layers3, Package } from 'lucide-react';
 import { ROOM_CATALOG } from '@/data/roomTypes';
 import { Building } from './Building';
@@ -71,12 +72,24 @@ export const Moving3DStep: React.FC<Moving3DStepProps> = ({ rooms, items, onRoom
           )}
         </CardHeader>
         <CardContent className="p-0">
-          <div className="h-[480px] lg:h-[520px]">
-            <Canvas camera={{ position: [6, 6, 10], fov: 45 }}>
-              <ambientLight intensity={0.6} />
-              <directionalLight position={[10, 10, 5]} intensity={0.8} />
+          <div className="h-[480px] lg:h-[520px] rounded-md overflow-hidden">
+            <Canvas camera={{ position: [8, 6, 10], fov: 45 }}>
+              <color attach="background" args={['hsl(210, 20%, 98%)']} />
+              <ambientLight intensity={0.7} />
+              <directionalLight position={[10, 12, 8]} intensity={0.9} />
               <Environment preset="city" />
+              <Grid
+                position={[0, -0.6, 0]}
+                args={[40, 40]}
+                cellSize={1}
+                cellColor="hsl(215, 16%, 82%)"
+                sectionSize={5}
+                sectionColor="hsl(215, 28%, 55%)"
+                fadeDistance={30}
+                infiniteGrid
+              />
               <Building floors={floors} selectedFloor={selectedFloor} onSelectFloor={(f) => { setSelectedFloor(f); setSelectedRoom(null); }} />
+              <ContactShadows position={[0, -0.6, 0]} opacity={0.35} scale={30} blur={1.8} />
               <OrbitControls enablePan enableZoom enableRotate />
             </Canvas>
           </div>
@@ -102,29 +115,30 @@ export const Moving3DStep: React.FC<Moving3DStepProps> = ({ rooms, items, onRoom
               ))}
             </div>
             <Separator className="my-3" />
-            {!selectedFloor && (
-              <p className="text-muted-foreground">Pick a floor in the 3D view or from the badges above.</p>
-            )}
-            {!!selectedFloor && !selectedRoom && (
-              <FloorRoomsOverlay
-                floorId={selectedFloor}
-                onSelectRoom={(roomId) => setSelectedRoom(roomId)}
-              />
-            )}
-            {!!selectedFloor && !!selectedRoom && (
-              <RoomItemsPanel
-                floorId={selectedFloor}
-                roomId={selectedRoom}
-                items={items}
-                onItemsUpdate={onItemsUpdate}
-                currentRoomCount={rooms.find(r => r.room === selectedRoom && r.floor === selectedFloor)?.count || 0}
-                onRoomCountChange={(count) => handleRoomCountChange(selectedRoom, selectedFloor, count)}
-                onBack={() => setSelectedRoom(null)}
-              />
-            )}
+            <ScrollArea className="h-[360px] pr-3">
+              {!selectedFloor && (
+                <p className="text-muted-foreground">Pick a floor in the 3D view or from the badges above.</p>
+              )}
+              {!!selectedFloor && !selectedRoom && (
+                <FloorRoomsOverlay
+                  floorId={selectedFloor}
+                  onSelectRoom={(roomId) => setSelectedRoom(roomId)}
+                />
+              )}
+              {!!selectedFloor && !!selectedRoom && (
+                <RoomItemsPanel
+                  floorId={selectedFloor}
+                  roomId={selectedRoom}
+                  items={items}
+                  onItemsUpdate={onItemsUpdate}
+                  currentRoomCount={rooms.find(r => r.room === selectedRoom && r.floor === selectedFloor)?.count || 0}
+                  onRoomCountChange={(count) => handleRoomCountChange(selectedRoom, selectedFloor, count)}
+                  onBack={() => setSelectedRoom(null)}
+                />
+              )}
+            </ScrollArea>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-2 text-sm">
