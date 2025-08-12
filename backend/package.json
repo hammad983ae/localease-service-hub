@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node --max-old-space-size=2048 server-integrated.cjs",
     "start:prod": "node --max-old-space-size=2048 --optimize-for-size server-integrated.cjs",
+    "start:prod:shell": "./start-prod.sh",
     "dev": "nodemon server-integrated.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

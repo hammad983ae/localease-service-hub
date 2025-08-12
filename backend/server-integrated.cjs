@@ -23,8 +23,104 @@ const { ChatRoom } = require('./models/ChatRoom.js');
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
 
+// Register signal handlers early
+console.log('🔧 Registering signal handlers...');
+
+// Test signal handler registration
+const testSignalHandlers = () => {
+  console.log('🔍 Testing signal handler registration...');
+  const signals = ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2'];
+  signals.forEach(signal => {
+    const listeners = process.listeners(signal);
+    console.log(`📡 ${signal}: ${listeners.length} listener(s) registered`);
+  });
+};
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  console.log('📊 Process info:', {
+    pid: process.pid,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+  
+  // Close HTTP server
+  if (global.httpServer) {
+    global.httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+      
+      // Close MongoDB connection
+      if (mongoose.connection.readyState === 1) {
+        mongoose.connection.close(false, () => {
+          console.log('✅ MongoDB connection closed');
+          process.exit(0);
+        });
+      } else {
+        console.log('✅ MongoDB already disconnected');
+        process.exit(0);
+      }
+    });
+  } else {
+    console.log('❌ HTTP server not found, exiting directly');
+    process.exit(0);
+  }
+  
+  // Force close after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 30000);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  process.emit('SIGTERM');
+});
+
+// Additional signal handlers for production
+process.on('SIGUSR1', () => {
+  console.log('📊 SIGUSR1 received - Process info:', {
+    pid: process.pid,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    mongoState: mongoose.connection.readyState
+  });
+});
+
+process.on('SIGUSR2', () => {
+  console.log('🔄 SIGUSR2 received - Graceful restart signal');
+  process.emit('SIGTERM');
+});
+
+// Process error handling
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  console.error('📊 Process state before exit:', {
+    pid: process.pid,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('📊 Process state before exit:', {
+    pid: process.pid,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+  process.exit(1);
+});
+
+console.log('✅ Signal handlers registered');
+testSignalHandlers();
+
 const app = express();
 const httpServer = createServer(app);
+// Make httpServer globally accessible for signal handlers
+global.httpServer = httpServer;
 const PORT = process.env.PORT || 5002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -438,44 +534,12 @@ httpServer.listen(PORT, () => {
   console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
   console.log(`✅ MongoDB: Connected`);
-});
-
-// Graceful shutdown handling
-process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully...');
-  
-  // Close HTTP server
-  httpServer.close(() => {
-    console.log('✅ HTTP server closed');
-    
-    // Close MongoDB connection
-    mongoose.connection.close(false, () => {
-      console.log('✅ MongoDB connection closed');
-      process.exit(0);
-    });
-  });
-  
-  // Force close after 30 seconds
-  setTimeout(() => {
-    console.error('❌ Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 30000);
-});
-
-process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully...');
-  process.emit('SIGTERM');
-});
-
-// Process error handling
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  console.log(`🔧 Process ID: ${process.pid}`);
+  console.log(`🔧 Node Version: ${process.version}`);
+  console.log(`🔧 Platform: ${process.platform}`);
+  console.log(`🔧 Architecture: ${process.arch}`);
+  console.log(`🔧 Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
+  console.log(`🔧 Signal handlers: SIGTERM, SIGINT, SIGUSR1, SIGUSR2 registered`);
 });
 
 module.exports = { app, io, connectedUsers };
