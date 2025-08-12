@@ -61,9 +61,34 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// Enhanced health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Check MongoDB connection
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    // Check memory usage
+    const memUsage = process.memoryUsage();
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongo: mongoStatus,
+      memory: {
+        rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB'
+      },
+      pid: process.pid
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Public routes
@@ -413,6 +438,44 @@ httpServer.listen(PORT, () => {
   console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
   console.log(`✅ MongoDB: Connected`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  
+  // Close HTTP server
+  httpServer.close(() => {
+    console.log('✅ HTTP server closed');
+    
+    // Close MongoDB connection
+    mongoose.connection.close(false, () => {
+      console.log('✅ MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+  
+  // Force close after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 30000);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  process.emit('SIGTERM');
+});
+
+// Process error handling
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 module.exports = { app, io, connectedUsers };

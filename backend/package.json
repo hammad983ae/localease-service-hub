@@ -4,7 +4,8 @@
   "description": "Backend REST API for Localease Service Hub",
   "main": "server-integrated.cjs",
   "scripts": {
-    "start": "node server-integrated.cjs",
+    "start": "node --max-old-space-size=2048 server-integrated.cjs",
+    "start:prod": "node --max-old-space-size=2048 --optimize-for-size server-integrated.cjs",
     "dev": "nodemon server-integrated.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
