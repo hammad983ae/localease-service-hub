@@ -124,11 +124,34 @@ global.httpServer = httpServer;
 const PORT = process.env.PORT || 5002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
+// CORS configuration - environment aware
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const allowedOrigins = isDevelopment 
+  ? [
+      'http://localhost:3000',    // Vite dev server
+      'http://localhost:8081',    // Your current dev port
+      'http://localhost:8080',    // Your current server port
+      'http://localhost:5173',    // Common Vite port
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:8081',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:5173'
+    ]
+  : [
+      'https://clear.high-score.dev',  // Your production domain
+      'https://yourdomain.com'         // Add your actual production domain
+    ];
+
+console.log('🌐 CORS Configuration:');
+console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🌐 Allowed Origins:`, allowedOrigins);
+
 // Create Socket.IO server
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:8081", "https://clear.high-score.dev"],
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true
   }
 });
@@ -138,9 +161,39 @@ const connectedUsers = new Map();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:8081', 'https://clear.high-score.dev'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log(`🚫 CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
+
+// Preflight request handling
+app.options('*', cors());
+
+// CORS debugging middleware
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - User-Agent: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  
+  // Add CORS headers to all responses
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -176,7 +229,11 @@ app.get('/health', async (req, res) => {
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB'
       },
-      pid: process.pid
+      pid: process.pid,
+      cors: {
+        allowedOrigins,
+        environment: process.env.NODE_ENV || 'development'
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -185,6 +242,17 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS is working!',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    method: req.method,
+    headers: req.headers
+  });
 });
 
 // Public routes

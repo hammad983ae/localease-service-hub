@@ -1,4 +1,16 @@
-const API_BASE_URL = 'https://localease-service-hub-production.up.railway.app/api';
+// Environment-aware API configuration
+const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:8080/api'  // Local development
+  : 'https://localease-service-hub-production.up.railway.app/api'; // Production
+
+console.log('🌐 API Configuration:', {
+  environment: isDevelopment ? 'development' : 'production',
+  apiUrl: API_BASE_URL,
+  hostname: window.location.hostname,
+  port: window.location.port
+});
 
 class ApiClient {
   private getAuthHeaders() {
