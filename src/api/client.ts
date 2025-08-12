@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5002/api';
+const API_BASE_URL = 'https://localease-service-hub-production.up.railway.app/api';
 
 class ApiClient {
   private getAuthHeaders() {
@@ -427,6 +427,20 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to reject booking');
+    }
+    
+    return response.json();
+  }
+
+  async fixCompanyChatRooms() {
+    const response = await fetch(`${API_BASE_URL}/company/fix-chat-rooms`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fix chat rooms');
     }
     
     return response.json();

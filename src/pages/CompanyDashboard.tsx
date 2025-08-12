@@ -368,6 +368,15 @@ const CompanyDashboard: React.FC = () => {
       
       try {
         setLoading(true);
+        
+        // First, try to fix any chat rooms that are missing companyId
+        try {
+          await apiClient.fixCompanyChatRooms();
+          console.log('✅ Chat rooms fixed successfully');
+        } catch (fixError) {
+          console.log('⚠️ Chat room fix not needed or failed:', fixError);
+        }
+        
         const [bookingsData, chatData, invoicesData] = await Promise.all([
           apiClient.getCompanyBookings(),
           apiClient.getCompanyChatRooms(),

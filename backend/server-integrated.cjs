@@ -31,7 +31,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 // Create Socket.IO server
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:8081",
+    origin: ["http://localhost:8081", "https://clear.high-score.dev"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -42,14 +42,15 @@ const connectedUsers = new Map();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:8081',
+  origin: ['http://localhost:8081', 'https://clear.high-score.dev'],
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/LocalE', {
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/LocalE';
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

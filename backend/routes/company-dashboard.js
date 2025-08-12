@@ -106,6 +106,17 @@ router.get('/chat-rooms', async (req, res) => {
 
     console.log(`✅ Found ${chatRooms.length} chat rooms for company`);
 
+    // Fix any chat rooms that are missing companyId but should belong to this company
+    // This handles the case where chat rooms were created by admin but need companyId
+    for (const chatRoom of chatRooms) {
+      if (!chatRoom.companyId && chatRoom.chatType === 'company_user') {
+        console.log('⚠️ Fixing chat room missing companyId:', chatRoom._id);
+        chatRoom.companyId = company._id;
+        await chatRoom.save();
+        console.log('✅ Fixed chat room companyId');
+      }
+    }
+
     // Transform _id to id for frontend compatibility
     const transformedChatRooms = chatRooms.map(room => ({
       ...room.toObject(),
@@ -118,6 +129,63 @@ router.get('/chat-rooms', async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching company chat rooms:', error);
     res.status(500).json({ error: 'Failed to fetch company chat rooms' });
+  }
+});
+
+// Fix existing chat rooms that are missing companyId
+router.post('/fix-chat-rooms', async (req, res) => {
+  try {
+    console.log('🔍 Fixing chat rooms for company user:', req.user.userId);
+    
+    // Find the company associated with this user
+    const company = await Company.findOne({ userId: req.user.userId });
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    // Find chat rooms that should belong to this company but are missing companyId
+    const chatRoomsToFix = await ChatRoom.find({
+      chatType: 'company_user',
+      $or: [
+        { companyId: { $exists: false } },
+        { companyId: null }
+      ]
+    });
+
+    console.log(`🔍 Found ${chatRoomsToFix.length} chat rooms to fix`);
+
+    let fixedCount = 0;
+    for (const chatRoom of chatRoomsToFix) {
+      // Check if this chat room is related to a booking that belongs to this company
+      const { MovingBooking, DisposalBooking, TransportBooking } = require('../models/index.js');
+      
+      let relatedBooking = null;
+      if (chatRoom.bookingType === 'moving') {
+        relatedBooking = await MovingBooking.findById(chatRoom.bookingId);
+      } else if (chatRoom.bookingType === 'disposal') {
+        relatedBooking = await DisposalBooking.findById(chatRoom.bookingId);
+      } else if (chatRoom.bookingType === 'transport') {
+        relatedBooking = await TransportBooking.findById(chatRoom.bookingId);
+      }
+
+      if (relatedBooking && relatedBooking.companyId?.toString() === company._id.toString()) {
+        console.log('🔧 Fixing chat room:', chatRoom._id);
+        chatRoom.companyId = company._id;
+        await chatRoom.save();
+        fixedCount++;
+        console.log('✅ Fixed chat room companyId');
+      }
+    }
+
+    console.log(`✅ Fixed ${fixedCount} chat rooms`);
+
+    res.json({
+      message: `Fixed ${fixedCount} chat rooms`,
+      fixedCount
+    });
+  } catch (error) {
+    console.error('❌ Error fixing chat rooms:', error);
+    res.status(500).json({ error: 'Failed to fix chat rooms' });
   }
 });
 
