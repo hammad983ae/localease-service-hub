@@ -27,10 +27,12 @@ git clone <repository-url>
 cd localease-service-hub
 ```
 
-2. Install dependencies:
+2. Install dependencies (frontend and backend):
 ```bash
 npm install
 ```
+
+   The backend lives in its own `/backend` Node project. The root `npm install` will automatically install its dependencies via a `postinstall` script. If installing manually, run `npm --prefix backend install`.
 
 3. Set up environment variables:
 Create a `.env` file in the root directory with the following variables:
@@ -45,8 +47,7 @@ Create a `.env` file in the root directory with the following variables:
 
 1. Start the backend server:
 ```bash
-cd backend
-npm start
+npm run start:backend:prod # or npm run start:backend for default start
 ```
 
 2. Start the frontend development server:

@@ -18,7 +18,7 @@ trap cleanup SIGINT SIGTERM
 # Start the integrated server
 echo "🌟 Starting integrated server on port 5002..."
 cd backend
-node server-integrated.cjs
+npm run start:prod
 
 # This will only run if the server exits unexpectedly
 echo "❌ Server stopped unexpectedly"

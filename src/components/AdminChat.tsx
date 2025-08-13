@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/config';
 
 interface ChatRoom {
   _id: string; // MongoDB ObjectId
@@ -92,7 +93,7 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
     if (!token) return;
 
     // Create Socket.IO connection
-    const newSocket = io('http://localhost:5002', {
+    const newSocket = io(SOCKET_URL, {
       auth: {
         token: token
       },

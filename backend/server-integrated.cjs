@@ -124,23 +124,22 @@ global.httpServer = httpServer;
 const PORT = process.env.PORT || 5002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-// CORS configuration - environment aware
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const allowedOrigins = isDevelopment 
-  ? [
-      'http://localhost:3000',    // Vite dev server
-      'http://localhost:8081',    // Your current dev port
-      'http://localhost:8080',    // Your current server port
-      'http://localhost:5173',    // Common Vite port
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:8081',
-      'http://127.0.0.1:8080',
-      'http://127.0.0.1:5173'
-    ]
-  : [
-      'https://clear.high-score.dev',  // Your production domain
-      'https://yourdomain.com'         // Add your actual production domain
-    ];
+// CORS configuration - allow development and production origins
+const allowedOrigins = [
+  // Development servers
+  'http://localhost:3000',    // Vite dev server
+  'http://localhost:8081',    // Current dev port
+  'http://localhost:8080',    // Current server port
+  'http://localhost:5173',    // Common Vite port
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8081',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+  // Production domains
+  'https://clear.high-score.dev',
+  'https://local.high-score.dev',
+  'https://localease-service-hub-production-108d.up.railway.app'
+];
 
 console.log('🌐 CORS Configuration:');
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
