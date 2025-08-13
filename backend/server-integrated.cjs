@@ -136,8 +136,11 @@ const allowedOrigins = [
   'http://127.0.0.1:8080',
   'http://127.0.0.1:5173',
   // Production domains
-  'https://clear.high-score.dev',
-  'https://believable-alignment-production.up.railway.app'
+
+  'https://local.high-score.dev',
+  'https://localease-service-hub-production-108d.up.railway.app'
+
+
 ];
 
 console.log('🌐 CORS Configuration:');
