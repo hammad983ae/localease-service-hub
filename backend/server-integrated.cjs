@@ -19,6 +19,7 @@ const adminRoutes = require('./routes/admin');
 const { User } = require('./models/User.js');
 const { Message } = require('./models/Message.js');
 const { ChatRoom } = require('./models/ChatRoom.js');
+const { UserProfile } = require('./models/UserProfile.js'); // Added UserProfile import
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -268,17 +269,167 @@ app.get('/api/simple-test', (req, res) => {
   });
 });
 
-// Public routes
-app.use('/api/auth', authRoutes);
+// AUTH FLOW - Direct implementation (no external route files)
+// Register new user
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { email, password, full_name, phone, address, role = 'user' } = req.body;
+    
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
-// Protected routes
-app.use('/api/users', authenticateToken, userRoutes);
-app.use('/api/bookings', authenticateToken, bookingRoutes);
-app.use('/api/companies', authenticateToken, companyRoutes);
-app.use('/api/company', authenticateToken, companyDashboardRoutes);
-app.use('/api/chat', authenticateToken, chatRoutes);
-app.use('/api/quotes', authenticateToken, quoteRoutes);
-app.use('/api/admin', authenticateToken, adminRoutes);
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create user
+    const user = new User({
+      email,
+      password: hashedPassword,
+      full_name,
+      phone,
+      address,
+      role
+    });
+
+    await user.save();
+    
+    // Create user profile
+    const profile = new UserProfile({
+      userId: user._id,
+      full_name,
+      phone,
+      address
+    });
+    await profile.save();
+    
+    // Generate token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+    
+    // Return user data (without password)
+    const userData = {
+      id: user._id,
+      email: user.email,
+      full_name: user.full_name,
+      phone: user.phone,
+      address: user.address,
+      role: user.role,
+      createdAt: user.createdAt
+    };
+    
+    res.status(201).json({ 
+      token, 
+      user: userData,
+      message: 'User registered successfully'
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed', details: error.message });
+  }
+});
+
+// Login user
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password
+    const bcrypt = require('bcryptjs');
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+    
+    // Return user data (without password)
+    const userData = {
+      id: user._id,
+      email: user.email,
+      full_name: user.full_name,
+      phone: user.phone,
+      address: user.address,
+      role: user.role,
+      createdAt: user.createdAt
+    };
+    
+    res.json({ 
+      token, 
+      user: userData,
+      message: 'Login successful'
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed', details: error.message });
+  }
+});
+
+// Get current user (protected route)
+app.get('/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to get user', details: error.message });
+  }
+});
+
+// Simple user management endpoint
+app.get('/api/users', authenticateToken, async (req, res) => {
+  try {
+    const users = await User.find().select('-password').limit(10);
+    res.json({ 
+      users,
+      count: users.length,
+      message: 'Users retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to get users', details: error.message });
+  }
+});
+
+// Remove broken external route imports and use direct implementations
+// app.use('/api/auth', authRoutes);
+// app.use('/api/users', authenticateToken, userRoutes);
+// app.use('/api/bookings', authenticateToken, bookingRoutes);
+// app.use('/api/companies', authenticateToken, companyRoutes);
+// app.use('/api/company', authenticateToken, companyDashboardRoutes);
+// app.use('/api/chat', authenticateToken, chatRoutes);
+// app.use('/api/quotes', authenticateToken, quoteRoutes);
+// app.use('/api/admin', authenticateToken, adminRoutes);
 
 // Socket.IO Authentication middleware
 io.use(async (socket, next) => {
@@ -615,7 +766,7 @@ httpServer.listen(PORT, () => {
   console.log(`🔧 Process ENV PORT: ${process.env.PORT || 'NOT SET'}`);
   console.log(`🔧 Actual PORT used: ${PORT}`);
   console.log(`🔧 Binding to: 0.0.0.0:${PORT}`);
-  console.log(`📡 REST API: http://0.0.0.0:${PORT}`);
+  console.log(`�� REST API: http://0.0.0.0:${PORT}`);
   console.log(`🔌 WebSocket: ws://0.0.0.0:${PORT}`);
   console.log(`🏥 Health Check: http://0.0.0.0:${PORT}/health`);
   console.log(`✅ MongoDB: Connected`);
