@@ -256,6 +256,18 @@ app.get('/api/cors-test', (req, res) => {
   });
 });
 
+// Simple test endpoint (no MongoDB required)
+app.get('/api/simple-test', (req, res) => {
+  res.json({
+    message: 'API is working!',
+    timestamp: new Date().toISOString(),
+    status: 'success',
+    endpoint: '/api/simple-test',
+    cors: 'enabled',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Public routes
 app.use('/api/auth', authRoutes);
 
@@ -599,9 +611,13 @@ app.use('*', (req, res) => {
 // Start integrated server
 httpServer.listen(PORT, () => {
   console.log(`🚀 Integrated Server running on port ${PORT}`);
-  console.log(`📡 REST API: http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔧 Process ENV PORT: ${process.env.PORT || 'NOT SET'}`);
+  console.log(`🔧 Actual PORT used: ${PORT}`);
+  console.log(`🔧 Binding to: 0.0.0.0:${PORT}`);
+  console.log(`📡 REST API: http://0.0.0.0:${PORT}`);
+  console.log(`🔌 WebSocket: ws://0.0.0.0:${PORT}`);
+  console.log(`🏥 Health Check: http://0.0.0.0:${PORT}/health`);
   console.log(`✅ MongoDB: Connected`);
   console.log(`🔧 Process ID: ${process.pid}`);
   console.log(`🔧 Node Version: ${process.version}`);
