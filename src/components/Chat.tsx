@@ -30,6 +30,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/api/client';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/config';
 
 interface Message {
   id: string;
@@ -134,7 +135,7 @@ const Chat: React.FC<ChatProps> = ({ onClose, selectedChatRoomId, chatRoomId, ch
     if (!token) return;
 
     // Create Socket.IO connection
-    const newSocket = io('http://localhost:5002', {
+    const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling']
     });
