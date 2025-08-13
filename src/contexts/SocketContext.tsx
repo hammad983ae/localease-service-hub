@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/config';
 import { useAuth } from './AuthContext';
 
 interface SocketContextType {
@@ -48,7 +49,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
 
     // Create socket connection
-    const socket = io('http://localhost:5002', {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
     });

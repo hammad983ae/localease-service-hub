@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/api/client';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/config';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -55,7 +56,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (!token || !user) return;
 
     // Create Socket.IO connection
-    const socket = io('http://localhost:5002', {
+    const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling']
     });
