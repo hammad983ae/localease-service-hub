@@ -52,6 +52,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      timeout: 20000, // 20 second timeout
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      maxReconnectionAttempts: 5,
+      forceNew: true,
     });
 
     socketRef.current = socket;
@@ -73,8 +80,33 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      setIsConnected(false);
+      
+      // Auto-reconnect for certain disconnect reasons
+      if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+        console.log('Attempting to reconnect...');
+        socket.connect();
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setIsConnected(false);
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      setIsConnected(true);
+    });
+
+    socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', error);
+    });
+
+    socket.on('reconnect_failed', () => {
+      console.error('Socket reconnection failed after max attempts');
       setIsConnected(false);
     });
 

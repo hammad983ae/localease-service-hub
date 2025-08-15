@@ -74,11 +74,42 @@ export const Moving3DStep: React.FC<Moving3DStepProps> = ({ rooms, items, onRoom
         </CardHeader>
         <CardContent className="p-0">
           <div className="h-[480px] lg:h-[520px] rounded-md overflow-hidden">
-            <Canvas camera={{ position: [8, 6, 10], fov: 45 }}>
+            <Canvas 
+              camera={{ position: [8, 6, 10], fov: 45 }}
+              gl={{ 
+                powerPreference: "default",
+                antialias: true,
+                alpha: false,
+                stencil: false,
+                depth: true
+              }}
+              onCreated={({ gl }) => {
+                // Handle WebGL context loss
+                gl.domElement.addEventListener('webglcontextlost', (event) => {
+                  console.warn('WebGL context lost, attempting to restore...');
+                  event.preventDefault();
+                });
+                
+                gl.domElement.addEventListener('webglcontextrestored', () => {
+                  console.log('WebGL context restored');
+                });
+                
+                // Set WebGL context attributes for better performance
+                gl.setClearColor(0xf0f0f0, 1);
+                gl.shadowMap.enabled = true;
+                gl.shadowMap.type = gl.PCFSoftShadowMap;
+              }}
+              onError={(error) => {
+                console.error('Canvas error:', error);
+              }}
+            >
               <color attach="background" args={['hsl(210, 20%, 98%)']} />
               <ambientLight intensity={0.7} />
               <directionalLight position={[10, 12, 8]} intensity={0.9} />
-              <Environment preset="city" />
+              {/* Replaced Environment preset with local lighting to avoid external HDR loading errors */}
+              <directionalLight position={[-10, 8, -8]} intensity={0.4} color="#ffffff" />
+              <directionalLight position={[0, 15, 0]} intensity={0.3} color="#ffffff" />
+              <pointLight position={[0, 10, 0]} intensity={0.2} distance={20} />
               <Grid
                 position={[0, -0.6, 0]}
                 args={[40, 40]}

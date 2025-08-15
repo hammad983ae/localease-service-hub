@@ -137,7 +137,6 @@ const allowedOrigins = [
   'http://127.0.0.1:8080',
   'http://127.0.0.1:5173',
   // Production domains
-
   'https://local.high-score.dev',
   'https://localease-service-hub-production-108d.up.railway.app'
 
@@ -155,7 +154,13 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true
-  }
+  },
+  pingTimeout: 60000, // 60 seconds
+  pingInterval: 25000, // 25 seconds
+  upgradeTimeout: 30000, // 30 seconds
+  maxHttpBufferSize: 1e6, // 1MB
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 });
 
 // Store connected users
@@ -236,6 +241,54 @@ app.get('/health', async (req, res) => {
         allowedOrigins,
         environment: process.env.NODE_ENV || 'development'
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Socket.IO health check endpoint
+app.get('/socket-health', (req, res) => {
+  try {
+    const connectedUsersCount = connectedUsers.size;
+    const socketServerStatus = io.engine ? 'running' : 'stopped';
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      socket: {
+        server: socketServerStatus,
+        connectedUsers: connectedUsersCount,
+        activeConnections: io.engine ? io.engine.clientsCount : 0
+      },
+      uptime: process.uptime(),
+      pid: process.pid
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Railway health check endpoint (required for deployment)
+app.get('/railway-health', async (req, res) => {
+  try {
+    // Check MongoDB connection
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongo: mongoStatus,
+      pid: process.pid
     });
   } catch (error) {
     res.status(500).json({
@@ -392,44 +445,17 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
-// Get current user (protected route)
-app.get('/auth/me', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ user });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to get user', details: error.message });
-  }
-});
 
-// Simple user management endpoint
-app.get('/api/users', authenticateToken, async (req, res) => {
-  try {
-    const users = await User.find().select('-password').limit(10);
-    res.json({ 
-      users,
-      count: users.length,
-      message: 'Users retrieved successfully'
-    });
-  } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ error: 'Failed to get users', details: error.message });
-  }
-});
 
-// Remove broken external route imports and use direct implementations
-// app.use('/api/auth', authRoutes);
-// app.use('/api/users', authenticateToken, userRoutes);
-// app.use('/api/bookings', authenticateToken, bookingRoutes);
-// app.use('/api/companies', authenticateToken, companyRoutes);
-// app.use('/api/company', authenticateToken, companyDashboardRoutes);
-// app.use('/api/chat', authenticateToken, chatRoutes);
-// app.use('/api/quotes', authenticateToken, quoteRoutes);
-// app.use('/api/admin', authenticateToken, adminRoutes);
+// Register external route files
+app.use('/api/auth', authRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
+app.use('/api/bookings', authenticateToken, bookingRoutes);
+app.use('/api/companies', authenticateToken, companyRoutes);
+app.use('/api/company', authenticateToken, companyDashboardRoutes);
+app.use('/api/chat', authenticateToken, chatRoutes);
+app.use('/api/quotes', authenticateToken, quoteRoutes);
+app.use('/api/admin', authenticateToken, adminRoutes);
 
 // Socket.IO Authentication middleware
 io.use(async (socket, next) => {
@@ -468,11 +494,17 @@ io.on('connection', (socket) => {
   connectedUsers.set(socket.userId, {
     socketId: socket.id,
     role: socket.userRole,
-    email: socket.userEmail
+    email: socket.userEmail,
+    connectedAt: new Date()
   });
 
   // Join user to their personal room
   socket.join(`user_${socket.userId}`);
+
+  // Handle socket errors
+  socket.on('error', (error) => {
+    console.error(`Socket error for user ${socket.userId}:`, error);
+  });
 
   // Handle joining a chat room
   socket.on('join_room', async (data) => {
@@ -726,8 +758,8 @@ io.on('connection', (socket) => {
   });
 
   // Handle disconnection
-  socket.on('disconnect', () => {
-    console.log(`User ${socket.userId} disconnected`);
+  socket.on('disconnect', (reason) => {
+    console.log(`User ${socket.userId} disconnected: ${reason}`);
     
     // Remove from connected users
     connectedUsers.delete(socket.userId);
