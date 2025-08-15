@@ -373,81 +373,82 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
   }
 
   return (
-    <div className="flex h-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className={`${isEmbedded ? 'flex h-full bg-background' : 'flex h-[calc(100vh-120px)] bg-card rounded-xl shadow-sm border border-border'} overflow-hidden`}>
       {/* Chat Rooms Sidebar */}
-      <div className="w-80 border-r border-gray-200 bg-gray-50">
-        <div className="p-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
+      {!isEmbedded && (
+        <div className="w-80 border-r border-border bg-muted/30 flex flex-col">
+          <div className="p-4 border-b border-border bg-background">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Messages</h2>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-background border-border"
+              />
+            </div>
           </div>
-          
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search messages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-100 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
 
-        {/* Chat Rooms List */}
-        <ScrollArea className="h-[calc(600px-120px)]">
-          <div className="p-2">
-            {chatRooms.map((room) => (
-              <div
-                key={room._id}
-                onClick={() => {
-                  setSelectedChatRoom(room);
-                  fetchMessages(room._id);
-                }}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedChatRoom?._id === room._id
-                    ? 'bg-blue-50 border border-blue-200'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-blue-500 text-white">
-                      {room.bookingType?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {room.bookingType} Booking
-                      </p>
+          {/* Chat Rooms List */}
+          <ScrollArea className="flex-1">
+            <div className="p-2">
+              {chatRooms.map((room) => (
+                <div
+                  key={room._id}
+                  onClick={() => {
+                    setSelectedChatRoom(room);
+                    fetchMessages(room._id);
+                  }}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedChatRoom?._id === room._id
+                      ? 'bg-primary/10 border border-primary/20'
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10 border border-border">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {room.bookingType?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {room.bookingType} Booking
+                        </p>
+                        {room.lastMessage && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatTime(room.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
                       {room.lastMessage && (
-                        <span className="text-xs text-gray-500">
-                          {formatTime(room.lastMessage.createdAt)}
-                        </span>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {room.lastMessage.content}
+                        </p>
                       )}
                     </div>
-                    {room.lastMessage && (
-                      <p className="text-xs text-gray-500 truncate">
-                        {room.lastMessage.content}
-                      </p>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
         {selectedChatRoom ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="p-6 border-b border-border bg-background">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Button
@@ -458,16 +459,16 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-blue-500 text-white">
+                  <Avatar className="h-8 w-8 border border-border">
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       {selectedChatRoom.bookingType?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium text-gray-900">
+                    <h3 className="font-medium text-foreground">
                       {selectedChatRoom.bookingType} Booking
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {selectedChatRoom.bookingId}
                     </p>
                   </div>
@@ -487,7 +488,7 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
             </div>
 
             {/* Messages Area */}
-            <ScrollArea className="flex-1 p-4 bg-gray-50">
+            <ScrollArea className="flex-1 p-6 bg-muted/20">
               <div className="space-y-4">
                 {messages.map((msg) => (
                   <div
@@ -501,15 +502,15 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   >
                     <div className={`max-w-xs lg:max-w-md ${msg.senderId === user?.id ? 'order-2' : 'order-1'}`}>
                       {msg.replyTo && (
-                        <div className={`mb-1 text-xs text-gray-500 ${msg.senderId === user?.id ? 'text-right' : 'text-left'}`}>
+                        <div className={`mb-1 text-xs text-muted-foreground ${msg.senderId === user?.id ? 'text-right' : 'text-left'}`}>
                           Replying to: {msg.replyTo.content.substring(0, 30)}...
                         </div>
                       )}
                       <div
                         className={`rounded-2xl px-4 py-2 ${
                           msg.senderId === user?.id
-                            ? 'bg-blue-500 text-white rounded-br-md'
-                            : 'bg-white text-gray-900 rounded-bl-md border border-gray-200'
+                            ? 'bg-primary text-primary-foreground rounded-br-md'
+                            : 'bg-background text-foreground rounded-bl-md border border-border'
                         }`}
                       >
                         <p className="text-sm">{msg.content}</p>
@@ -517,19 +518,19 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
                       <div className={`flex items-center space-x-1 mt-1 ${
                         msg.senderId === user?.id ? 'justify-end' : 'justify-start'
                       }`}>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {formatTime(msg.createdAt)}
                         </span>
                         {msg.senderId === user?.id && (
-                          <span className="text-xs text-gray-500">
-                            {msg.isRead ? <CheckCheck className="h-3 w-3 text-blue-500" /> : <Check className="h-3 w-3" />}
+                          <span className="text-xs text-muted-foreground">
+                            {msg.isRead ? <CheckCheck className="h-3 w-3 text-primary" /> : <Check className="h-3 w-3" />}
                           </span>
                         )}
                       </div>
                     </div>
                     {msg.senderId !== user?.id && (
                       <Avatar className="h-8 w-8 ml-2 order-1">
-                        <AvatarFallback className="bg-gray-500 text-white text-xs">
+                        <AvatarFallback className="bg-muted text-foreground text-xs">
                           {getSenderName(msg).charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -540,13 +541,13 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
                 {/* Typing Indicator */}
                 {Object.values(isTyping).some(Boolean) && (
                   <div className="flex justify-start">
-                    <div className="bg-white rounded-2xl px-4 py-2 border border-gray-200">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="bg-background rounded-2xl px-4 py-2 border border-border">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
                       </div>
-                    </div>
                   </div>
                 )}
                 
@@ -556,11 +557,11 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
             {/* Reply Preview */}
             {replyToMessage && (
-              <div className="px-4 py-2 bg-blue-50 border-t border-blue-200">
+              <div className="px-4 py-2 bg-primary/10 border-t border-primary/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Reply className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-blue-700">
+                    <Reply className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-primary">
                       Replying to: {replyToMessage.content.substring(0, 50)}...
                     </span>
                   </div>
@@ -576,7 +577,7 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
             )}
 
             {/* Message Input */}
-            <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="p-4 border-t border-border bg-background">
               <div className="flex items-center space-x-2">
                 <Button
                   variant="ghost"
@@ -599,13 +600,13 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
                     onChange={handleTyping}
                     onKeyPress={handleKeyPress}
                     placeholder="Type a message..."
-                    className="border-0 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 rounded-full px-4 py-2"
+                    className="border-0 bg-muted/50 focus:bg-background focus:ring-2 focus:ring-primary rounded-full px-4 py-2"
                   />
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!message.trim()}
-                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-2"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -615,9 +616,9 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
-              <p className="text-gray-500">Choose a chat room from the sidebar to start messaging</p>
+              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Select a conversation</h3>
+              <p className="text-muted-foreground">Choose a chat room from the sidebar to start messaging</p>
             </div>
           </div>
         )}
@@ -635,17 +636,17 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
       {/* Message Actions Menu */}
       {showMessageActions && selectedMessage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-2 min-w-[200px]">
+          <div className="bg-background rounded-lg shadow-lg p-2 min-w-[200px]">
             <button
               onClick={() => handleMessageAction('reply', selectedMessage)}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded flex items-center space-x-2"
+              className="w-full text-left px-4 py-2 hover:bg-muted rounded flex items-center space-x-2"
             >
               <Reply className="h-4 w-4" />
               <span>Reply</span>
             </button>
             <button
               onClick={() => handleMessageAction('forward', selectedMessage)}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded flex items-center space-x-2"
+              className="w-full text-left px-4 py-2 hover:bg-muted rounded flex items-center space-x-2"
             >
               <Forward className="h-4 w-4" />
               <span>Forward</span>
@@ -654,14 +655,14 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
               <>
                 <button
                   onClick={() => handleMessageAction('edit', selectedMessage)}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded flex items-center space-x-2"
+                  className="w-full text-left px-4 py-2 hover:bg-muted rounded flex items-center space-x-2"
                 >
                   <Edit className="h-4 w-4" />
                   <span>Edit</span>
                 </button>
                 <button
                   onClick={() => handleMessageAction('delete', selectedMessage)}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded flex items-center space-x-2 text-red-600"
+                  className="w-full text-left px-4 py-2 hover:bg-muted rounded flex items-center space-x-2 text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />
                   <span>Delete</span>
@@ -670,7 +671,7 @@ const EnhancedChat: React.FC<EnhancedChatProps> = ({
             )}
             <button
               onClick={() => setShowMessageActions(false)}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded flex items-center space-x-2"
+              className="w-full text-left px-4 py-2 hover:bg-muted rounded flex items-center space-x-2"
             >
               <X className="h-4 w-4" />
               <span>Cancel</span>
