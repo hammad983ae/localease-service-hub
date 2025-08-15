@@ -7,7 +7,7 @@
    npm install
    ```
 
-2. Start MongoDB locally (default: mongodb://localhost:27017/localease)
+2. Start MongoDB locally (default: mongodb://mongo:bomgIVKQxBvDazjNOecSPsxTywtBAOdO@shinkansen.proxy.rlwy.net:21344)
 
 3. Start the server:
    ```bash

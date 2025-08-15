@@ -35,11 +35,27 @@ npm install
    The backend lives in its own `/backend` Node project. The root `npm install` will automatically install its dependencies via a `postinstall` script. If installing manually, run `npm --prefix backend install`.
 
 3. Set up environment variables:
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Other environment variables as needed
-```
+   
+   **Option A: Use the setup script (Recommended)**
+   ```bash
+   cd backend
+   ./setup-env.sh
+   ```
+   
+   **Option B: Create manually**
+   Create a `.env` file in the `backend` directory with the following variables:
+   
+   ```env
+   # MongoDB Connection
+   MONGODB_URI=mongodb://mongo:bomgIVKQxBvDazjNOecSPsxTywtBAOdO@shinkansen.proxy.rlwy.net:21344
+   
+   # Server Configuration
+   NODE_ENV=development
+   PORT=5002
+   
+   # JWT Configuration
+   JWT_SECRET=your_jwt_secret_change_in_production
+   ```
 
 
 

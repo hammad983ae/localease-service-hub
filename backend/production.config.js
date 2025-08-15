@@ -2,7 +2,7 @@
 module.exports = {
   NODE_ENV: 'production',
   PORT: process.env.PORT || 5002,
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/LocalE',
+  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://mongo:bomgIVKQxBvDazjNOecSPsxTywtBAOdO@shinkansen.proxy.rlwy.net:21344',
   JWT_SECRET: process.env.JWT_SECRET || 'your_jwt_secret',
   
   // CORS origins for production

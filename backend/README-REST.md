@@ -26,7 +26,7 @@ npm install
 
 2. Start MongoDB:
 ```bash
-# Make sure MongoDB is running on localhost:27017
+# Make sure MongoDB is running on the configured connection string
 mongod
 ```
 
@@ -144,7 +144,7 @@ Create a `.env` file in the backend directory:
 JWT_SECRET=your_jwt_secret_here
 PORT=5002
 SOCKET_PORT=5003
-MONGODB_URI=mongodb://localhost:27017/localease
+MONGODB_URI=mongodb://mongo:bomgIVKQxBvDazjNOecSPsxTywtBAOdO@shinkansen.proxy.rlwy.net:21344
 ```
 
 ## Database Models

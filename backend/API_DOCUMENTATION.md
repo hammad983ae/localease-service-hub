@@ -396,7 +396,7 @@ Configure the following environment variables:
 ```env
 PORT=5002
 JWT_SECRET=your_secure_jwt_secret
-MONGODB_URI=mongodb://localhost:27017/localease
+MONGODB_URI=mongodb://mongo:bomgIVKQxBvDazjNOecSPsxTywtBAOdO@shinkansen.proxy.rlwy.net:21344
 ```
 
 ## Testing
