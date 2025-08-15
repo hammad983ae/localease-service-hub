@@ -36,12 +36,13 @@ import {
   Truck,
   Package,
   Home,
-  Building
+  Building,
+  LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
-import Chat from '@/components/Chat';
+import EnhancedChat from '@/components/EnhancedChat';
 
 // TypeScript Interfaces
 interface Booking {
@@ -146,7 +147,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-const DashboardHeader: React.FC<{ user: User | null }> = ({ user }) => (
+const DashboardHeader: React.FC<{ user: User | null; onLogout: () => void }> = ({ user, onLogout }) => (
   <div className="flex items-center justify-between mb-8">
     <div>
       <h1 className="text-3xl font-bold text-gray-900">Company Dashboard</h1>
@@ -162,6 +163,10 @@ const DashboardHeader: React.FC<{ user: User | null }> = ({ user }) => (
       <Button variant="outline" size="sm">
         <Filter className="h-4 w-4 mr-2" />
         Filter
+      </Button>
+      <Button variant="outline" size="sm" onClick={onLogout}>
+        <LogOut className="h-4 w-4 mr-2" />
+        Logout
       </Button>
     </div>
   </div>
@@ -351,7 +356,7 @@ const InvoiceItem: React.FC<{
 );
 
 const CompanyDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -479,6 +484,12 @@ const CompanyDashboard: React.FC = () => {
     setSelectedBooking(null);
   };
 
+  const handleLogout = () => {
+    signOut();
+    navigate('/auth');
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -501,7 +512,7 @@ const CompanyDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DashboardHeader user={user} />
+      <DashboardHeader user={user} onLogout={handleLogout} />
       
       <StatsGrid stats={stats} />
 
@@ -601,9 +612,10 @@ const CompanyDashboard: React.FC = () => {
             </div>
             <div className="flex-1">
               {currentActiveChatRoom ? (
-                <Chat
+                <EnhancedChat
                   chatRoomData={currentActiveChatRoom}
                   onClose={handleCloseChat}
+                  isCompany={true}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">

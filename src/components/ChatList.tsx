@@ -18,7 +18,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiClient } from '@/api/client';
-import Chat from './Chat';
+import EnhancedChat from './EnhancedChat';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '@/config';
 
@@ -303,7 +303,7 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
 
       {/* Chat Area */}
       {selectedChatRoom ? (
-        <Chat onClose={handleCloseChat} selectedChatRoomId={selectedChatRoom} />
+        <EnhancedChat onClose={handleCloseChat} selectedChatRoomId={selectedChatRoom} />
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500">

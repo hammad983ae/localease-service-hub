@@ -7,10 +7,10 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import QuoteDocuments from './QuoteDocuments';
 import AdminChat from './AdminChat';
-import EnhancedAdminChat from './EnhancedAdminChat';
-import RealTimeChatDemo from './RealTimeChatDemo';
+import EnhancedChat from './EnhancedChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/api/client';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Building2,
@@ -35,7 +35,8 @@ import {
   XCircle,
   MessageSquare,
   Package,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 
 interface AdminStats {
@@ -100,8 +101,9 @@ interface AdminInvoice {
   createdAt: string;
 }
 
-const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+export const AdminDashboard: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [companies, setCompanies] = useState<AdminCompany[]>([]);
@@ -114,6 +116,11 @@ const AdminDashboard: React.FC = () => {
   console.log('AdminDashboard - Current user:', user);
   console.log('AdminDashboard - User role:', user?.role);
   console.log('AdminDashboard - User ID:', user?.id);
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/auth');
+  };
 
   // Fetch all admin data
   useEffect(() => {
@@ -245,6 +252,10 @@ const AdminDashboard: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </div>
 
@@ -350,7 +361,6 @@ const AdminDashboard: React.FC = () => {
           <TabsTrigger value="companies">Companies</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
-          <TabsTrigger value="demo">Real-Time Demo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="space-y-6">
@@ -486,11 +496,7 @@ const AdminDashboard: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-6">
-          <EnhancedAdminChat />
-        </TabsContent>
-
-        <TabsContent value="demo" className="space-y-6">
-          <RealTimeChatDemo />
+          <EnhancedChat isAdmin={true} />
         </TabsContent>
       </Tabs>
     </div>
