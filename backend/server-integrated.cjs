@@ -151,7 +151,7 @@ console.log(`🌐 Allowed Origins:`, allowedOrigins);
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true
   },
@@ -180,23 +180,77 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
-// Preflight request handling
-app.options('*', cors());
+// Specific preflight handler for admin routes to ensure PATCH is allowed
+app.options('/api/admin/*', cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+// Comprehensive preflight handler for all routes
+app.options('*', (req, res) => {
+  console.log(`🔧 Preflight request: ${req.method} ${req.path}`);
+  console.log(`🔧 Origin: ${req.headers.origin}`);
+  console.log(`🔧 Access-Control-Request-Method: ${req.headers['access-control-request-method']}`);
+  console.log(`🔧 Access-Control-Request-Headers: ${req.headers['access-control-request-headers']}`);
+  
+  // Set CORS headers for preflight
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  
+  res.status(200).end();
+});
 
 // CORS debugging middleware
 app.use((req, res, next) => {
   console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - User-Agent: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
   
+  // Special handling for admin routes and PATCH requests
+  if (req.path.startsWith('/api/admin') || req.method === 'PATCH') {
+    console.log(`🔧 Admin/PATCH request detected: ${req.method} ${req.path}`);
+    console.log(`🔧 Origin: ${req.headers.origin}`);
+    console.log(`🔧 Method: ${req.method}`);
+    console.log(`🔧 Headers:`, req.headers);
+  }
+  
   // Add CORS headers to all responses
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
+  
+  next();
+});
+
+// Additional CORS middleware specifically for admin routes
+app.use('/api/admin', (req, res, next) => {
+  console.log(`🔧 Admin route accessed: ${req.method} ${req.path}`);
+  console.log(`🔧 Origin: ${req.headers.origin}`);
+  console.log(`🔧 Method: ${req.method}`);
+  console.log(`🔧 User-Agent: ${req.headers['user-agent']}`);
+  
+  // Set CORS headers specifically for admin routes
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log(`🔧 Admin preflight request handled for: ${req.path}`);
+    res.status(200).end();
+    return;
+  }
   
   next();
 });
@@ -319,6 +373,21 @@ app.get('/api/simple-test', (req, res) => {
     endpoint: '/api/simple-test',
     cors: 'enabled',
     environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Test PATCH endpoint for CORS debugging
+app.patch('/api/test-patch', (req, res) => {
+  console.log('🔧 Test PATCH endpoint hit');
+  console.log('🔧 Headers:', req.headers);
+  console.log('🔧 Body:', req.body);
+  
+  res.json({
+    message: 'PATCH request successful!',
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    headers: req.headers,
+    body: req.body
   });
 });
 
