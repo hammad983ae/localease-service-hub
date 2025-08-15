@@ -401,153 +401,196 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="flex h-[600px] bg-white rounded-lg shadow-lg">
-      {/* Chat Rooms List */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Chat Rooms</h3>
-        </div>
-        
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-2">
-            {chatRooms.map((room) => (
-              <div
-                key={room._id}
-                onClick={() => handleChatRoomClick(room._id)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedChatRoom?._id === room._id
-                    ? 'bg-blue-50 border border-blue-200'
-                    : 'hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {room.bookingType} #{room.bookingId}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {room.chatType}
-                    </p>
-                  </div>
-                  <Badge 
-                    variant={room.isActive ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {room.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Chat Area */}
-      {selectedChatRoom ? (
-        <div className="flex-1 flex flex-col">
-          {/* Chat Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+    <div className="h-[calc(100vh-120px)] max-w-7xl mx-auto p-6">
+      <div className="flex h-full bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        {/* Chat Rooms List */}
+        <div className="w-80 border-r border-border flex flex-col bg-muted/30">
+          <div className="p-6 border-b border-border bg-background">
             <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseChat}
-                className="p-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {getServiceTypeLabel()}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Room #{selectedChatRoom._id}
-                </p>
+                <h3 className="text-lg font-semibold text-foreground">Admin Chat</h3>
+                <p className="text-sm text-muted-foreground">{chatRooms.length} active rooms</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              {currentBooking && (
-                <Badge className={getBookingStatusColor(currentBooking.status)}>
-                  {currentBooking.status}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseChat}
-                className="p-1"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
+          
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {chatRooms.map((room) => (
                 <div
-                  key={message.id || `message-${index}`}
-                  className={`flex ${
-                    message.senderType === 'admin' ? 'justify-end' : 'justify-start'
+                  key={room._id}
+                  onClick={() => handleChatRoomClick(room._id)}
+                  className={`group p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                    selectedChatRoom?._id === room._id
+                      ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                      : 'hover:bg-muted/50'
                   }`}
                 >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.senderType === 'admin'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    <p className={`text-xs mt-1 ${
-                      message.senderType === 'admin' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {formatTime(message.createdAt)}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <Avatar className="h-10 w-10 border border-border">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-sm">
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {room.bookingType} #{room.bookingId}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {room.chatType}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={room.isActive ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {room.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
                 </div>
               ))}
-              
-              {/* Typing indicator */}
-              {Object.values(isTyping).some(Boolean) && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
-                    <p className="text-sm">Someone is typing...</p>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
+        </div>
 
-          {/* Message Input */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex space-x-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                className="flex-1"
-              />
-              <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
+        {/* Chat Area */}
+        {selectedChatRoom ? (
+          <div className="flex-1 flex flex-col bg-background">
+            {/* Chat Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between bg-background">
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseChat}
+                  className="p-2 hover:bg-muted"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border border-border">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                      <User className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {getServiceTypeLabel()}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Room #{selectedChatRoom._id.slice(-6)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                {currentBooking && (
+                  <Badge variant="outline" className="bg-background">
+                    {currentBooking.status}
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseChat}
+                  className="p-2 hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-6">
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <div
+                    key={message.id || `message-${index}`}
+                    className={`flex ${
+                      message.senderType === 'admin' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3 max-w-xs lg:max-w-md">
+                      {message.senderType !== 'admin' && (
+                        <Avatar className="h-8 w-8 border border-border">
+                          <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div
+                        className={`px-4 py-3 rounded-xl ${
+                          message.senderType === 'admin'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground border border-border'
+                        }`}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <p className={`text-xs mt-1 ${
+                          message.senderType === 'admin' 
+                            ? 'text-primary-foreground/70' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          {formatTime(message.createdAt)}
+                        </p>
+                      </div>
+                      {message.senderType === 'admin' && (
+                        <Avatar className="h-8 w-8 border border-border">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            <Shield className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div ref={messagesEndRef} />
+            </ScrollArea>
+
+            {/* Message Input */}
+            <div className="p-6 border-t border-border bg-background">
+              <div className="flex items-center space-x-3">
+                <div className="flex-1 relative">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type your message..."
+                    className="pr-12 h-11 bg-muted/50 border-border"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim()}
+                    size="sm"
+                    className="absolute right-1 top-1 h-9 w-9 p-0"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Select a chat room to start messaging</p>
-            <p className="text-sm">Choose from the list on the left to begin a conversation</p>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="text-center max-w-md mx-auto px-6">
+              <div className="p-6 bg-muted/30 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Shield className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Select a chat room</h3>
+              <p className="text-muted-foreground">
+                Choose a conversation to start managing customer support
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

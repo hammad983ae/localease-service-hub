@@ -97,7 +97,7 @@ export const Moving3DStep: React.FC<Moving3DStepProps> = ({ rooms, items, onRoom
                 // Set WebGL context attributes for better performance
                 gl.setClearColor(0xf0f0f0, 1);
                 gl.shadowMap.enabled = true;
-                gl.shadowMap.type = gl.PCFSoftShadowMap;
+                gl.shadowMap.type = (gl as any).PCFSoftShadowMap;
               }}
               onError={(error) => {
                 console.error('Canvas error:', error);

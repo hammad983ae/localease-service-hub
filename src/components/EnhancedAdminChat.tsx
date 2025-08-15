@@ -466,257 +466,302 @@ const EnhancedAdminChat: React.FC<EnhancedAdminChatProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="flex h-[600px] bg-white rounded-lg shadow-lg">
-      {/* Chat Rooms List */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Service Chats</h3>
-        </div>
-        
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-2">
-            {chatRooms.map((room) => (
-              <div
-                key={room.id || room._id}
-                onClick={() => handleChatRoomClick(room.id || room._id)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedChatRoom?.id === (room.id || room._id)
-                    ? 'bg-blue-50 border border-blue-200'
-                    : 'hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {room.bookingType} #{room.bookingId}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {room.lastMessage || 'No messages yet'}
-                    </p>
-                  </div>
-                  <Badge 
-                    variant={room.isActive ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {room.status}
-                  </Badge>
-                </div>
+    <div className="h-[calc(100vh-120px)] max-w-7xl mx-auto p-6">
+      <div className="flex h-full bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        {/* Chat Rooms List */}
+        <div className="w-80 border-r border-border flex flex-col bg-muted/30">
+          <div className="p-6 border-b border-border bg-background">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Building2 className="h-5 w-5 text-primary" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Enhanced Admin</h3>
+                <p className="text-sm text-muted-foreground">{chatRooms.length} service chats</p>
+              </div>
+            </div>
           </div>
-        </ScrollArea>
-      </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {chatRooms.map((room) => (
+                <div
+                  key={room.id || room._id}
+                  onClick={() => handleChatRoomClick(room.id || room._id)}
+                  className={`group p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                    selectedChatRoom?.id === (room.id || room._id)
+                      ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <Avatar className="h-10 w-10 border border-border">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-sm">
+                          <Building2 className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {room.bookingType} #{room.bookingId}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {room.lastMessage || 'No messages yet'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={room.isActive ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {room.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
 
-      {/* Chat Area */}
-      {selectedChatRoom ? (
-        <div className="flex-1 flex flex-col">
-          {/* Chat Header with Booking Details */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+        {/* Chat Area */}
+        {selectedChatRoom ? (
+          <div className="flex-1 flex flex-col bg-background">
+            {/* Chat Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between bg-background">
+              <div className="flex items-center space-x-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCloseChat}
-                  className="p-1"
+                  className="p-2 hover:bg-muted"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {getServiceTypeLabel()}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Booking #{selectedChatRoom.bookingId}
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border border-border">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                      <Building2 className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {getServiceTypeLabel()}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Enhanced Chat #{selectedChatRoom.id.slice(-6)}
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 {currentBooking && (
-                  <Badge className={getBookingStatusColor(currentBooking.status)}>
+                  <Badge variant="outline" className="bg-background">
                     {currentBooking.status}
                   </Badge>
                 )}
                 
-                {/* Company Profile Button */}
+                {/* Company Management Actions */}
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="h-9">
                       <Building2 className="h-4 w-4 mr-2" />
-                      Send Company
+                      Companies
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Select Company Profile</DialogTitle>
+                      <DialogTitle>Send Company Profile</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-2">
+                    <div className="grid gap-4 max-h-96 overflow-y-auto">
                       {companies.map((company) => (
-                        <div key={company.id || company._id} className="p-3 border rounded-lg">
-                          <div className="flex items-center justify-between">
+                        <div key={company.id || company._id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                <Building2 className="h-5 w-5" />
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
-                              <h4 className="font-medium">{company.name}</h4>
-                              <p className="text-sm text-gray-600">{company.email}</p>
-                              <p className="text-xs text-gray-500">{company.services.join(', ')}</p>
+                              <p className="font-medium text-foreground">{company.name}</p>
+                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                <span>{company.services?.join(', ')}</span>
+                                <span>•</span>
+                                <div className="flex items-center">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                                  <span>{company.rating}</span>
+                                </div>
+                              </div>
                             </div>
-                            <Button 
-                              size="sm" 
-                              onClick={() => sendCompanyProfile(company)}
-                            >
-                              Send
-                            </Button>
                           </div>
+                          <Button
+                            onClick={() => sendCompanyProfile(company)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Send Profile
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </DialogContent>
                 </Dialog>
 
-                {/* Invoice Button */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Send Invoice
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create Invoice</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Amount (USD)</label>
-                        <Input 
-                          type="number" 
-                          placeholder="0.00" 
-                          id="invoice-amount"
-                          className="mt-1"
-                        />
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          const amount = parseFloat((document.getElementById('invoice-amount') as HTMLInputElement).value);
-                          if (amount > 0) {
-                            sendInvoice(amount);
-                          }
-                        }}
-                      >
-                        Send Invoice
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCloseChat}
-                  className="p-1"
+                  className="p-2 hover:bg-muted"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          </div>
 
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={message.id || message._id || `message-${index}`}
-                  className={`flex ${
-                    message.senderType === 'admin' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-6">
+              <div className="space-y-6">
+                {messages.map((message, index) => (
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.senderType === 'admin'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                    key={message.id || message._id || `message-${index}`}
+                    className={`flex ${
+                      message.senderType === 'admin' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
-                    
-                    {/* Company Profile Display */}
-                    {message.messageType === 'company_profile' && message.companyProfile && (
-                      <div className="mt-2 p-2 bg-white bg-opacity-20 rounded">
-                        <div className="flex items-center space-x-2">
-                          <Building2 className="h-4 w-4" />
-                          <span className="font-medium">{message.companyProfile.companyName}</span>
+                    <div className="flex items-start space-x-3 max-w-xs lg:max-w-md">
+                      {message.senderType !== 'admin' && (
+                        <Avatar className="h-8 w-8 border border-border">
+                          <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      
+                      <div className="space-y-2">
+                        {/* Regular Message */}
+                        <div
+                          className={`px-4 py-3 rounded-xl ${
+                            message.senderType === 'admin'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground border border-border'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.senderType === 'admin' 
+                              ? 'text-primary-foreground/70' 
+                              : 'text-muted-foreground'
+                          }`}>
+                            {formatTime(message.createdAt)}
+                          </p>
                         </div>
-                        <p className="text-xs mt-1">{message.companyProfile.companyEmail}</p>
-                        <p className="text-xs">{message.companyProfile.services.join(', ')}</p>
-                        <div className="flex items-center mt-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs ml-1">{message.companyProfile.rating}</span>
-                          <span className="text-xs ml-1">({message.companyProfile.totalReviews} reviews)</span>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Invoice Display */}
-                    {message.messageType === 'invoice' && message.invoice && (
-                      <div className="mt-2 p-2 bg-white bg-opacity-20 rounded">
-                        <div className="flex items-center space-x-2">
-                          <DollarSign className="h-4 w-4" />
-                          <span className="font-medium">Invoice</span>
-                        </div>
-                        <p className="text-lg font-bold">${message.invoice.amount}</p>
-                        <p className="text-xs">Due: {formatDate(message.invoice.dueDate)}</p>
-                        <p className="text-xs">Status: {message.invoice.status}</p>
-                      </div>
-                    )}
+                        {/* Company Profile Attachment */}
+                        {message.companyProfile && (
+                          <Card className="max-w-sm border border-border">
+                            <CardContent className="p-4">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className="bg-primary/10 text-primary">
+                                    <Building2 className="h-5 w-5" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium text-foreground">{message.companyProfile.companyName}</p>
+                                  <div className="flex items-center text-sm text-muted-foreground">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                                    <span>{message.companyProfile.rating}</span>
+                                    <span className="ml-1">({message.companyProfile.totalReviews} reviews)</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <p><span className="font-medium">Services:</span> {message.companyProfile.services?.join(', ')}</p>
+                                <p><span className="font-medium">Price Range:</span> {message.companyProfile.priceRange}</p>
+                                <p><span className="font-medium">Contact:</span> {message.companyProfile.companyEmail}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
 
-                    <p className={`text-xs mt-1 ${
-                      message.senderType === 'admin' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {formatTime(message.createdAt)}
-                    </p>
+                        {/* Invoice Attachment */}
+                        {message.invoice && (
+                          <Card className="max-w-sm border border-border">
+                            <CardContent className="p-4">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="p-2 bg-green-100 rounded-lg">
+                                  <DollarSign className="h-5 w-5 text-green-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-foreground">Invoice</p>
+                                  <p className="text-sm text-muted-foreground">Amount: ${message.invoice.amount}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Badge variant={message.invoice.status === 'paid' ? 'default' : 'secondary'}>
+                                  {message.invoice.status}
+                                </Badge>
+                                <Button size="sm" variant="outline">
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+
+                      {message.senderType === 'admin' && (
+                        <Avatar className="h-8 w-8 border border-border">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            <Shield className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              
-              {/* Typing indicator */}
-              {Object.values(isTyping).some(Boolean) && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
-                    <p className="text-sm">Someone is typing...</p>
-                  </div>
-                </div>
-              )}
-              
+                ))}
+              </div>
               <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+            </ScrollArea>
 
-          {/* Message Input */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex space-x-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                className="flex-1"
-              />
-              <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
+            {/* Message Input */}
+            <div className="p-6 border-t border-border bg-background">
+              <div className="flex items-center space-x-3">
+                <div className="flex-1 relative">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type your message..."
+                    className="pr-12 h-11 bg-muted/50 border-border"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim()}
+                    size="sm"
+                    className="absolute right-1 top-1 h-9 w-9 p-0"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Select a service chat to begin</p>
-            <p className="text-sm">Choose from the list on the left to start messaging</p>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="text-center max-w-md mx-auto px-6">
+              <div className="p-6 bg-muted/30 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Building2 className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Select a service chat</h3>
+              <p className="text-muted-foreground">
+                Choose a conversation to manage bookings and send company profiles
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

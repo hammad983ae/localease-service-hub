@@ -214,105 +214,126 @@ const ChatList: React.FC<ChatListProps> = ({ initialBookingId }) => {
   }
 
   return (
-    <div className="flex h-[600px] bg-background rounded-lg shadow">
-      {/* Chat Rooms List */}
-      <div className="w-80 border-r border-border flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center space-x-2">
-            <MessageCircle className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Chats</h2>
-            {unreadCount > 0 && <Badge variant="secondary" className="ml-2">{unreadCount}</Badge>}
-          </div>
-          <Button size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
-
-        {/* Search */}
-        <div className="p-4 border-b border-border">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search chats..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
+    <div className="h-[calc(100vh-120px)] max-w-7xl mx-auto p-6">
+      <div className="flex h-full bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         {/* Chat Rooms List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredRooms.length === 0 ? (
-            <div className="text-center py-12">
-              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No chats yet</h3>
-              <p className="text-gray-500">
-                {searchTerm ? 'No chats match your search' : 'Start a conversation to see your chats here'}
-              </p>
+        <div className="w-80 border-r border-border flex flex-col bg-muted/30">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-border bg-background">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <MessageCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Messages</h2>
+                {unreadCount > 0 && (
+                  <p className="text-sm text-muted-foreground">{unreadCount} unread</p>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="p-2 space-y-2">
-              {filteredRooms.map((room) => (
-                <div
-                  key={room._id}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    selectedChatRoom === room._id
-                      ? 'bg-accent border border-accent'
-                      : 'hover:bg-muted'
-                  }`}
-                  onClick={() => handleChatRoomClick(room._id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <Button size="sm" variant="outline" className="h-9 px-3">
+              <Plus className="h-4 w-4 mr-2" />
+              New
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="p-4 border-b border-border bg-background">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search conversations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-background"
+              />
+            </div>
+          </div>
+
+          {/* Chat Rooms List */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredRooms.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <div className="p-4 bg-muted/50 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <MessageCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">No conversations</h3>
+                <p className="text-muted-foreground text-sm">
+                  {searchTerm ? 'No chats match your search' : 'Start a conversation to see your chats here'}
+                </p>
+              </div>
+            ) : (
+              <div className="p-2 space-y-1">
+                {filteredRooms.map((room) => (
+                  <div
+                    key={room._id}
+                    className={`group p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedChatRoom === room._id
+                        ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => handleChatRoomClick(room._id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <Avatar className="h-10 w-10 border border-border">
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-sm font-medium">
                             {getChatTypeIcon(room.chatType)}
                           </AvatarFallback>
                         </Avatar>
                         
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {getChatTypeLabel(room.chatType)}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {getChatTypeLabel(room.chatType)}
+                            </p>
+                            {unreadChats.has(room._id) && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
                             {getBookingTypeLabel(room.bookingType)} #{room.bookingId}
                           </p>
                         </div>
                       </div>
-                    </div>
-                    
+                      
                       <div className="flex flex-col items-end space-y-1">
-                        {unreadChats.has(room._id) && (
-                          <Badge variant="default" className="text-[10px] px-1.5 py-0.5">New</Badge>
-                        )}
                         <span className="text-xs text-muted-foreground">
                           {formatDate(room.updatedAt)}
                         </span>
+                        {unreadChats.has(room._id) && (
+                          <Badge variant="default" className="text-[10px] px-2 py-0.5 h-5">
+                            New
+                          </Badge>
+                        )}
                       </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      {selectedChatRoom ? (
-        <EnhancedChat onClose={handleCloseChat} selectedChatRoomId={selectedChatRoom} />
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Select a chat to start messaging</p>
-            <p className="text-sm">Choose from the list on the left to begin a conversation</p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Chat Area */}
+        {selectedChatRoom ? (
+          <div className="flex-1 flex flex-col bg-background">
+            <EnhancedChat onClose={handleCloseChat} selectedChatRoomId={selectedChatRoom} />
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="text-center max-w-md mx-auto px-6">
+              <div className="p-6 bg-muted/30 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
+              <p className="text-muted-foreground">
+                Choose from your existing conversations or start a new one
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
