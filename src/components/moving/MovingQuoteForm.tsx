@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Package, User, Phone, Mail, Home, Package2 } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Package, User, Phone, Mail, Home, Package2, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,6 +64,15 @@ const MovingQuoteForm: React.FC<MovingQuoteFormProps> = ({ onSubmit, initialData
     }
 
     // Validate that all required data is present
+    if (!initialData.buildingType) {
+      toast({
+        title: "Missing information",
+        description: "Please select a building type in the previous step.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!initialData.rooms || initialData.rooms.length === 0) {
       toast({
         title: "Missing information",
@@ -223,6 +232,20 @@ const MovingQuoteForm: React.FC<MovingQuoteFormProps> = ({ onSubmit, initialData
                 {initialData?.addresses?.to || 'Not specified'}
               </p>
             </div>
+          </div>
+
+          {/* Building Type */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium">
+              <Building className="h-4 w-4" />
+              Building Type
+            </Label>
+            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
+              {initialData?.buildingType ? 
+                initialData.buildingType.charAt(0).toUpperCase() + initialData.buildingType.slice(1) 
+                : 'Not specified'
+              }
+            </p>
           </div>
 
           {/* Move Details */}

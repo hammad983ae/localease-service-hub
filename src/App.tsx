@@ -22,8 +22,10 @@ import Admin from "./pages/Admin";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import QuoteDocuments from "./components/QuoteDocuments";
+import Discover from "./pages/Discover";
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { MultiServiceCartProvider } from './contexts/MultiServiceCartContext';
 import NotificationSound from './components/NotificationSound';
 import FloatingChatWidget from './components/FloatingChatWidget';
 
@@ -56,8 +58,9 @@ const App = () => {
           <Sonner />
           <AuthProvider>
             <NotificationProvider>
-              <NotificationSound />
-              <BrowserRouter>
+              <MultiServiceCartProvider>
+                <NotificationSound />
+                <BrowserRouter>
                 <FloatingChatWidget />
                 <Routes>
                   <Route path="/" element={<Landing />} />
@@ -65,8 +68,9 @@ const App = () => {
                   <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
                   <Route path="/company-onboarding" element={<ProtectedCompanyRoute><CompanyOnboarding /></ProtectedCompanyRoute>} />
                   <Route path="/company-dashboard" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
-                  <Route path="/" element={<Layout />}>
+                  <Route path="" element={<Layout />}>
                     <Route path="home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                    <Route path="discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
                     <Route path="moving" element={<ProtectedRoute><Moving /></ProtectedRoute>} />
                     <Route path="disposal" element={<ProtectedRoute><Disposal /></ProtectedRoute>} />
                     <Route path="transport" element={<ProtectedRoute><Transport /></ProtectedRoute>} />
@@ -79,6 +83,7 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
+              </MultiServiceCartProvider>
             </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>

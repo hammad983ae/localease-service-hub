@@ -1,21 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Calculator, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MovingFlow from '@/components/moving/MovingFlow';
+import { ServiceTypeModal } from '@/components/ServiceTypeModal';
 import { useQuery } from '@tanstack/react-query';
 // TODO: Replace Supabase logic with Node.js/MongoDB-based data integration
 import { useServiceSelection } from '@/hooks/useServiceSelection';
 
 const Moving: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedType, setSelectedType] = useState<'quote' | 'supplier' | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const { getServiceSelection } = useServiceSelection();
 
   // Fetch user profile to get the full name
@@ -29,11 +31,20 @@ const Moving: React.FC = () => {
     enabled: !!user,
   });
 
-  // Check if user has a previous selection
+  // Check URL parameters and previous selection
   useEffect(() => {
-    const checkPreviousSelection = async () => {
+    const checkSelection = async () => {
       if (!user) return;
       
+      // First check URL parameters (from service selection modal)
+      const urlType = searchParams.get('type');
+      if (urlType && (urlType === 'quote' || urlType === 'supplier')) {
+        console.log('🔍 Moving page: Found URL parameter type:', urlType);
+        setSelectedType(urlType as 'quote' | 'supplier');
+        return;
+      }
+      
+      // Fall back to checking previous selection
       const selection = await getServiceSelection('moving');
       if (selection) {
         console.log('🔍 Moving page: Found previous selection:', selection);
@@ -43,8 +54,8 @@ const Moving: React.FC = () => {
       }
     };
     
-    checkPreviousSelection();
-  }, [user, getServiceSelection]);
+    checkSelection();
+  }, [user, getServiceSelection, searchParams]);
 
   const userName = profile?.full_name || user?.user_metadata?.full_name || 'User';
   const firstName = userName.split(' ')[0];
@@ -52,6 +63,7 @@ const Moving: React.FC = () => {
   const handleTypeSelection = (type: 'quote' | 'supplier') => {
     console.log('🔍 Moving page: handleTypeSelection called with type:', type);
     setSelectedType(type);
+    setIsModalOpen(false);
     console.log('🔍 Moving page: selectedType set to:', type);
   };
 
@@ -93,58 +105,24 @@ const Moving: React.FC = () => {
         </p>
       </div>
 
-      {/* Service Options */}
-      <div className="space-y-4">
-        <Card 
-          className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
-          onClick={() => handleTypeSelection('quote')}
+      {/* Service Selection Button */}
+      <div className="flex justify-center">
+        <Button 
+          onClick={() => setIsModalOpen(true)}
+          size="lg"
+          className="px-8 py-6 text-lg font-semibold bg-primary hover:bg-primary/90"
         >
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 rounded-full bg-blue-50">
-                <Calculator className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Get a Quote</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Get an instant estimate for your move
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">
-              Provide details about your move and receive a detailed quote instantly. 
-              Perfect for planning and budgeting your relocation.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-muted/30"
-          onClick={() => handleTypeSelection('supplier')}
-        >
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 rounded-full bg-green-50">
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Book Service</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Book professional movers directly
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">
-              Connect with verified moving professionals in your area. 
-              Schedule your move and get expert help every step of the way.
-            </p>
-          </CardContent>
-        </Card>
+          Select Service Type
+        </Button>
       </div>
+
+            {/* Service Type Modal */}
+      <ServiceTypeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleTypeSelection}
+        serviceName="Moving"
+      />
 
       {/* Additional Info */}
       <div className="mt-8 p-4 bg-muted/50 rounded-lg">

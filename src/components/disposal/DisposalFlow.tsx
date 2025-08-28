@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import { useDisposalBookingSubmission } from '@/hooks/useDisposalBookingSubmission';
 import { useServiceSelection } from '@/hooks/useServiceSelection';
+import { useMultiServiceCart } from '@/contexts/MultiServiceCartContext';
 import DisposalItemSelection from './DisposalItemSelection';
 import DisposalDateTimeContactForm from './DisposalDateTimeContactForm';
 import DisposalAddressSelection from './DisposalAddressSelection';
 import DisposalBookingSummary from './DisposalBookingSummary';
 import CompanySelection from '../moving/CompanySelection';
+import { ServiceSelectionModal } from '@/components/ServiceSelectionModal';
 
 interface DisposalFlowProps {
   type: 'quote' | 'supplier';
@@ -45,6 +48,7 @@ type Step = 'company' | 'items' | 'datetime-contact' | 'address' | 'summary';
 
 const DisposalFlow: React.FC<DisposalFlowProps> = ({ type, onBack }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>(type === 'supplier' ? 'company' : 'items');
   const [disposalData, setDisposalData] = useState<DisposalData>({
     serviceType: '',
@@ -54,9 +58,11 @@ const DisposalFlow: React.FC<DisposalFlowProps> = ({ type, onBack }) => {
     contact: { name: '', email: '', phone: '', notes: '' }
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
   const { submitDisposalBooking, isSubmitting } = useDisposalBookingSubmission();
   const { saveServiceSelection } = useServiceSelection();
+  const { addItem, openCart } = useMultiServiceCart();
 
   // Save service selection when flow starts
   useEffect(() => {
@@ -92,12 +98,29 @@ const DisposalFlow: React.FC<DisposalFlowProps> = ({ type, onBack }) => {
   const handleSubmit = async () => {
     const success = await submitDisposalBooking(disposalData);
     if (success) {
+      try {
+        addItem('disposal', disposalData.serviceType, type, disposalData);
+      } catch (error) {
+        console.error('Failed to add item to cart:', error);
+      }
       setIsSubmitted(true);
     }
   };
 
   const handleCompanySelect = (company: any) => {
     updateData({ company });
+  };
+
+  const handleServiceSelect = (service: string, selectionType: 'quote' | 'supplier', serviceType?: string) => {
+    setIsServiceModalOpen(false);
+    
+    if (service === 'moving') {
+      navigate(`/moving?type=${selectionType}`);
+    } else if (service === 'disposal') {
+      navigate(`/disposal?serviceType=${serviceType}&type=${selectionType}`);
+    } else if (service === 'transport') {
+      navigate(`/transport?serviceType=${serviceType}&type=${selectionType}`);
+    }
   };
 
   const renderStep = () => {
@@ -160,13 +183,28 @@ const DisposalFlow: React.FC<DisposalFlowProps> = ({ type, onBack }) => {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">Disposal Request Submitted!</h1>
             <p className="text-muted-foreground">
-              Your disposal request has been received. We'll contact you soon to confirm the details.
+              Your disposal request has been received. We'll contact you soon to confirm the details. It has also been added to your cart.
             </p>
           </div>
-          <Button onClick={onBack} variant="outline" className="backdrop-blur-sm">
-            Back to Home
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={onBack} variant="outline" className="backdrop-blur-sm">
+              Back to Home
+            </Button>
+            <Button onClick={() => setIsServiceModalOpen(true)} variant="secondary" className="backdrop-blur-sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Service
+            </Button>
+            <Button onClick={openCart} className="backdrop-blur-sm">
+              View Cart
+            </Button>
+          </div>
         </div>
+
+        <ServiceSelectionModal
+          isOpen={isServiceModalOpen}
+          onClose={() => setIsServiceModalOpen(false)}
+          onServiceSelect={handleServiceSelect}
+        />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -14,27 +14,61 @@ import {
   Calendar,
   MessageCircle,
   FileText,
-  HelpCircle
+  HelpCircle,
+  ShoppingCart
 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMultiServiceCart } from '@/contexts/MultiServiceCartContext';
+import LanguageToggle from '@/components/LanguageToggle';
+import { RecentChatsPopup } from '@/components/RecentChatsPopup';
 import { cn } from '@/lib/utils';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isChatsPopupOpen, setIsChatsPopupOpen] = useState(false);
   const { unreadCount } = useNotifications();
   const { user, signOut } = useAuth();
+  const { state, openCart } = useMultiServiceCart();
   const location = useLocation();
+  const navigate = useNavigate();
+  const popupRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
     { path: '/home', label: 'Home', icon: Home },
     { path: '/bookings', label: 'Bookings', icon: Calendar },
-    { path: '/chats', label: 'Chats', icon: MessageCircle },
     { path: '/quotes', label: 'Quotes', icon: FileText },
     { path: '/support', label: 'Support', icon: HelpCircle },
   ];
 
-  const isHomePage = location.pathname === '/home';
+
+
+  // Handle click outside popup
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        setIsChatsPopupOpen(false);
+      }
+    };
+
+    if (isChatsPopupOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isChatsPopupOpen]);
+
+  const handleChatsPopupClose = () => {
+    setIsChatsPopupOpen(false);
+  };
+
+  const handleShowAllChats = () => {
+    navigate('/chats');
+    setIsChatsPopupOpen(false);
+  };
 
   return (
       <header className="saas-header">
@@ -49,47 +83,76 @@ const Header: React.FC = () => {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "nav-item",
-                    location.pathname === item.path && "active"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+            {/* Hamburger Menu - All Devices */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 rounded-xl hover:bg-accent"
+              onClick={() => setIsNavOpen(!isNavOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
 
-            {/* Search Bar - Only on Home */}
-            {isHomePage && (
-              <div className="hidden lg:flex items-center flex-1 max-w-md mx-4">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search services..."
-                    className="pl-10 h-10 rounded-xl input-modern shadow-none"
-                  />
-                </div>
+            {/* Search Bar - All Pages */}
+            <div className="hidden lg:flex items-center flex-1 max-w-md mx-4">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search services..."
+                  className="pl-10 h-10 rounded-xl input-modern shadow-none"
+                />
               </div>
-            )}
+            </div>
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-1">
+              {/* Language Toggle */}
+              <LanguageToggle />
+
+              {/* Chat Icon */}
+              <div className="relative" ref={popupRef}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-2 rounded-xl hover:bg-accent"
+                  onClick={() => setIsChatsPopupOpen(!isChatsPopupOpen)}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+                
+                <RecentChatsPopup
+                  isOpen={isChatsPopupOpen}
+                  onClose={handleChatsPopupClose}
+                  onShowAllChats={handleShowAllChats}
+                />
+              </div>
+
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative p-2 rounded-xl hover:bg-accent">
+              <Button variant="ghost" size="sm" className="p-2 rounded-xl hover:bg-accent">
                 <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
               </Button>
+
+              {/* Cart */}
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-2 rounded-xl hover:bg-accent"
+                  onClick={openCart}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {state.totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                      {state.totalItems > 99 ? '99+' : state.totalItems}
+                    </span>
+                  )}
+                </Button>
+              </div>
 
               {/* User Menu */}
               <div className="relative">
@@ -126,14 +189,26 @@ const Header: React.FC = () => {
                           <User className="h-4 w-4" />
                           <span>Profile</span>
                         </Link>
-                        <Link
-                          to="/admin"
-                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <Settings className="h-4 w-4" />
-                          <span>Settings</span>
-                        </Link>
+                        {user?.role === 'admin' && (
+                          <>
+                            <Link
+                              to="/admin"
+                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <Settings className="h-4 w-4" />
+                              <span>Settings</span>
+                            </Link>
+                            <Link
+                              to="/admin"
+                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span>Dashboard</span>
+                            </Link>
+                          </>
+                        )}
                       </div>
 
                       {/* Logout */}
@@ -153,22 +228,12 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-
-              {/* Mobile Menu Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden p-2 rounded-xl hover:bg-accent"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="md:hidden border-t border-border/50 py-4 animate-fade-in">
+          {/* Navigation Dropdown - Triggered by Hamburger */}
+          {isNavOpen && (
+            <div className="border-t border-border/50 py-4 animate-fade-in">
               <nav className="flex flex-col gap-2">
                 {navItems.map((item) => (
                   <Link
@@ -178,7 +243,7 @@ const Header: React.FC = () => {
                       "nav-item",
                       location.pathname === item.path && "active"
                     )}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => setIsNavOpen(false)}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>

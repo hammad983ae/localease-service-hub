@@ -59,15 +59,34 @@ class ApiClient {
 
   // Chat endpoints
   async getChatRooms() {
-    const response = await fetch(`${API_BASE_URL}/chat/rooms`, {
-      headers: this.getAuthHeaders(),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch chat rooms');
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/rooms`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to fetch chat rooms: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const duration = Date.now() - startTime;
+      
+      // Debug logging for chat API calls
+      if (isDevelopment) {
+        console.log(`📱 Chat API: getChatRooms completed in ${duration}ms`, {
+          roomCount: Array.isArray(data) ? data.length : (data.chatRooms?.length || 0),
+          hasActiveRooms: Array.isArray(data) ? data.some((r: any) => r.isActive) : (data.chatRooms?.some((r: any) => r.isActive) || false)
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Chat API: getChatRooms failed after ${duration}ms:`, error);
+      throw error;
     }
-    
-    return response.json();
   }
 
   async getChatMessages(roomId: string) {
@@ -362,15 +381,35 @@ class ApiClient {
   }
 
   async getAdminChatRooms() {
-    const response = await fetch(`${API_BASE_URL}/admin/chat/rooms`, {
-      headers: this.getAuthHeaders(),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch admin chat rooms');
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/chat/rooms`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to fetch admin chat rooms: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const duration = Date.now() - startTime;
+      
+      // Debug logging for admin chat API calls
+      if (isDevelopment) {
+        console.log(`👑 Admin Chat API: getAdminChatRooms completed in ${duration}ms`, {
+          roomCount: Array.isArray(data) ? data.length : (data.chatRooms?.length || 0),
+          hasActiveRooms: Array.isArray(data) ? data.some((r: any) => r.isActive) : (data.chatRooms?.some((r: any) => r.isActive) || false),
+          participantTypes: Array.isArray(data) ? [...new Set(data.map((r: any) => r.bookingType))] : []
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Admin Chat API: getAdminChatRooms failed after ${duration}ms:`, error);
+      throw error;
     }
-    
-    return response.json();
   }
 
   // Company dashboard endpoints
@@ -387,15 +426,35 @@ class ApiClient {
   }
 
   async getCompanyChatRooms() {
-    const response = await fetch(`${API_BASE_URL}/company/chat-rooms`, {
-      headers: this.getAuthHeaders(),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch company chat rooms');
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/chat-rooms`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to fetch company chat rooms: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const duration = Date.now() - startTime;
+      
+      // Debug logging for company chat API calls
+      if (isDevelopment) {
+        console.log(`🏢 Company Chat API: getCompanyChatRooms completed in ${duration}ms`, {
+          roomCount: Array.isArray(data) ? data.length : (data.chatRooms?.length || 0),
+          hasActiveRooms: Array.isArray(data) ? data.some((r: any) => r.isActive) : (data.chatRooms?.some((r: any) => r.isActive) || false),
+          companyId: data.companyId || 'unknown'
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Company Chat API: getCompanyChatRooms failed after ${duration}ms:`, error);
+      throw error;
     }
-    
-    return response.json();
   }
 
   async getCompanyInvoices() {

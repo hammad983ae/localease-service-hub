@@ -329,7 +329,7 @@ const Home: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex justify-center items-center">
                 <Button 
                   size="lg" 
                   className="btn-primary text-lg px-8 py-4"
@@ -337,15 +337,6 @@ const Home: React.FC = () => {
                 >
                   Start Your Booking
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="btn-secondary text-lg px-8 py-4"
-                  onClick={() => navigate('/chats')}
-                >
-                  Contact Support
                 </Button>
               </div>
             </CardContent>

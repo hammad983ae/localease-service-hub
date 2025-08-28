@@ -1,22 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useAuth } from './AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient } from '@/api/client';
-import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from '@/config';
 
 interface NotificationContextType {
   unreadCount: number;
   unreadChats: Set<string>;
   markAsRead: (chatRoomId: string) => void;
-  resetUnreadCount: () => void;
+  refreshUnreadCount: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }
   return context;
@@ -27,83 +23,30 @@ interface NotificationProviderProps {
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChats, setUnreadChats] = useState<Set<string>>(new Set());
-  const socketRef = useRef<Socket | null>(null);
 
-  // Fetch initial unread count
+  // Fetch unread count on mount and set up polling
   useEffect(() => {
-    const fetchUnreadCount = async () => {
-      if (!user) return;
+    refreshUnreadCount();
+    
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(refreshUnreadCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const refreshUnreadCount = async () => {
+    try {
+      const response = await apiClient.getUnreadCount();
+      const { unreadCount: count, unreadChats: chats } = response;
       
-      try {
-        const response = await apiClient.getUnreadCount();
-        setUnreadCount(response.unreadCount || 0);
-        setUnreadChats(new Set(response.unreadChats || []));
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
-  }, [user]);
-
-  // Socket.IO connection for real-time notifications
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || !user) return;
-
-    // Create Socket.IO connection
-    const socket = io(SOCKET_URL, {
-      auth: { token },
-      transports: ['websocket', 'polling']
-    });
-
-    socket.on('connect', () => {
-      console.log('Socket.IO connected for notifications');
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('Socket.IO disconnected:', reason);
-    });
-
-    socket.on('new_message', (data) => {
-      // Only mark as unread if message is not from current user
-      if (data.message.senderId !== user?.id) {
-        setUnreadCount(prev => prev + 1);
-        setUnreadChats(prev => new Set([...prev, data.message.chatRoomId]));
-        
-        // Show toast notification
-        toast({
-          title: "New Message",
-          description: `New message in chat room #${data.message.chatRoomId}`,
-        });
-      }
-    });
-
-    socket.on('error', (error) => {
-      console.error('Socket.IO error:', error);
-      toast({
-        title: "Connection Error",
-        description: error.message || "Socket error occurred",
-        variant: "destructive"
-      });
-    });
-
-    socketRef.current = socket;
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, [user, toast]);
+      setUnreadCount(count);
+      setUnreadChats(new Set(chats.map((chat: any) => chat.roomId)));
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
 
   const markAsRead = async (chatRoomId: string) => {
     try {
@@ -116,23 +59,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return newSet;
       });
       
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Refresh unread count
+      await refreshUnreadCount();
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      console.error('Failed to mark messages as read:', error);
     }
   };
 
-  const resetUnreadCount = () => {
-    setUnreadCount(0);
-    setUnreadChats(new Set());
-  };
-
-  const value = {
+  const value: NotificationContextType = {
     unreadCount,
     unreadChats,
     markAsRead,
-    resetUnreadCount,
+    refreshUnreadCount
   };
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  );
 }; 
