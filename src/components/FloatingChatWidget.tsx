@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { MessageCircle, X, Minus, ChevronDown, Sparkles } from 'lucide-react';
-import ChatList from './ChatList';
+import SendBirdChat from './SendBirdChat';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -86,7 +86,7 @@ const FloatingChatWidget: React.FC = () => {
           {!minimized && (
             <div className="flex-1 overflow-hidden bg-gradient-to-b from-white/50 to-white/80 backdrop-blur-sm rounded-b-3xl">
               <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                <ChatList />
+                <SendBirdChat />
               </div>
               
               {/* Decorative elements */}

@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import QuoteDocuments from './QuoteDocuments';
-import AdminChat from './AdminChat';
-import EnhancedChat from './EnhancedChat';
+import SendBirdChat from './SendBirdChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/api/client';
 import { useNavigate } from 'react-router-dom';
@@ -80,6 +79,8 @@ interface AdminBooking {
   _id: string;
   id?: string; // For backward compatibility
   userId: string;
+  buildingType?: string;
+  floors?: string[];
   rooms?: Array<{ floor: number; room: string; count: number }>;
   items?: string[];
   dateTime?: string;
@@ -378,6 +379,25 @@ export const AdminDashboard: React.FC = () => {
                         <p className="text-sm text-muted-foreground">
                           {booking.type} • {formatDate(booking.createdAt)}
                         </p>
+                        {booking.type === 'moving' && (
+                          <div className="mt-2 space-y-1">
+                            {booking.buildingType && (
+                              <p className="text-xs text-muted-foreground">
+                                Building: {booking.buildingType.charAt(0).toUpperCase() + booking.buildingType.slice(1)}
+                              </p>
+                            )}
+                            {booking.floors && booking.floors.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Floors: {booking.floors.join(', ')}
+                              </p>
+                            )}
+                            {booking.rooms && booking.rooms.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Rooms: {booking.rooms.length}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -496,7 +516,7 @@ export const AdminDashboard: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-6">
-          <EnhancedChat isAdmin={true} />
+          <SendBirdChat isAdmin={true} />
         </TabsContent>
       </Tabs>
     </div>

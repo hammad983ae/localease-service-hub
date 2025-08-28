@@ -42,7 +42,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
-import EnhancedChat from '@/components/EnhancedChat';
+import SendBirdChat from '@/components/SendBirdChat';
 
 // TypeScript Interfaces
 interface Booking {
@@ -50,6 +50,8 @@ interface Booking {
   status: 'pending' | 'pending_company_approval' | 'approved' | 'rejected' | 'completed';
   bookingType?: string;
   createdAt: string;
+  buildingType?: string;
+  floors?: string[];
   dateTime?: string;
   dateTimeFlexible?: string;
   addresses?: { from: string; to: string };
@@ -252,6 +254,16 @@ const BookingItem: React.FC<{
         {booking.addresses && (
           <p className="text-xs text-muted-foreground">
             {booking.addresses.from} → {booking.addresses.to}
+          </p>
+        )}
+        {booking.buildingType && (
+          <p className="text-xs text-muted-foreground">
+            Building: {booking.buildingType.charAt(0).toUpperCase() + booking.buildingType.slice(1)}
+          </p>
+        )}
+        {booking.floors && booking.floors.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Floors: {booking.floors.join(', ')}
           </p>
         )}
         <p className="text-xs text-muted-foreground">
@@ -612,7 +624,7 @@ const CompanyDashboard: React.FC = () => {
             </div>
             <div className="flex-1">
               {currentActiveChatRoom ? (
-                <EnhancedChat
+                <SendBirdChat
                   chatRoomData={currentActiveChatRoom}
                   onClose={handleCloseChat}
                   isCompany={true}

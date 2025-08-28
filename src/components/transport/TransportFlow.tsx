@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, CheckCircle, Package, Car, Truck, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Package, Car, Truck, Clock, Plus } from 'lucide-react';
 import { useTransportBookingSubmission } from '@/hooks/useTransportBookingSubmission';
 import { useServiceSelection } from '@/hooks/useServiceSelection';
+import { useMultiServiceCart } from '@/contexts/MultiServiceCartContext';
 import CompanySelection from '../moving/CompanySelection';
+import { ServiceSelectionModal } from '@/components/ServiceSelectionModal';
 
 interface TransportFlowProps {
   type: 'quote' | 'supplier';
@@ -62,6 +65,7 @@ type Step = 'company' | 'service' | 'items' | 'datetime-contact' | 'locations' |
 
 const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>(type === 'supplier' ? 'company' : 'service');
   const [transportData, setTransportData] = useState<TransportData>({
     serviceType: '',
@@ -72,9 +76,11 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
     contact: { name: '', email: '', phone: '', notes: '' }
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
   const { submitTransportBooking, isSubmitting } = useTransportBookingSubmission();
   const { saveServiceSelection } = useServiceSelection();
+  const { addItem, openCart } = useMultiServiceCart();
 
   // Save service selection when flow starts
   useEffect(() => {
@@ -116,12 +122,29 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
   const handleSubmit = async () => {
     const success = await submitTransportBooking(transportData);
     if (success) {
+      try {
+        addItem('transport', transportData.serviceType, type, transportData);
+      } catch (error) {
+        console.error('Failed to add item to cart:', error);
+      }
       setIsSubmitted(true);
     }
   };
 
   const handleCompanySelect = (company: any) => {
     updateData({ company });
+  };
+
+  const handleModalServiceSelect = (service: string, selectionType: 'quote' | 'supplier', serviceType?: string) => {
+    setIsServiceModalOpen(false);
+    
+    if (service === 'moving') {
+      navigate(`/moving?type=${selectionType}`);
+    } else if (service === 'disposal') {
+      navigate(`/disposal?serviceType=${serviceType}&type=${selectionType}`);
+    } else if (service === 'transport') {
+      navigate(`/transport?serviceType=${serviceType}&type=${selectionType}`);
+    }
   };
 
   const handleServiceSelect = (serviceType: string) => {
@@ -451,13 +474,28 @@ const TransportFlow: React.FC<TransportFlowProps> = ({ type, onBack }) => {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">Transport Request Submitted!</h1>
             <p className="text-muted-foreground">
-              Your transport request has been received. We'll contact you soon to confirm the details.
+              Your transport request has been received. We'll contact you soon to confirm the details. It has also been added to your cart.
             </p>
           </div>
-          <Button onClick={onBack} variant="outline" className="backdrop-blur-sm">
-            Back to Home
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={onBack} variant="outline" className="backdrop-blur-sm">
+              Back to Home
+            </Button>
+            <Button onClick={() => setIsServiceModalOpen(true)} variant="secondary" className="backdrop-blur-sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Service
+            </Button>
+            <Button onClick={openCart} className="backdrop-blur-sm">
+              View Cart
+            </Button>
+          </div>
         </div>
+
+        <ServiceSelectionModal
+          isOpen={isServiceModalOpen}
+          onClose={() => setIsServiceModalOpen(false)}
+          onServiceSelect={handleModalServiceSelect}
+        />
       </div>
     );
   }

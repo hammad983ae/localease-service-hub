@@ -23,6 +23,8 @@ const CompanySchema = new mongoose.Schema({
 const MovingBookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' }, // Company assigned to this booking
+  buildingType: { type: String, required: true }, // New field for building type
+  floors: [String], // New field for selected floors
   rooms: [RoomSchema],
   items: { type: Map, of: Number },
   dateTime: Date, // for specific date/time

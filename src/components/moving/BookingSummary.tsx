@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Package, Calendar, MapPin, User, Phone, Mail, FileText } from 'lucide-react';
+import { Home, Package, Calendar, MapPin, User, Phone, Mail, FileText, Building } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface RoomData {
@@ -13,6 +13,8 @@ interface RoomData {
 }
 
 interface MovingData {
+  buildingType?: string | null;
+  floors?: string[];
   rooms: RoomData[];
   items: Record<string, number>;
   dateTime: any;
@@ -145,6 +147,25 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({ data }) => {
           </Badge>
         </div>
       </div>
+
+      {/* Building Type & Floors */}
+      {data.buildingType && (
+        <Card className="border-2 border-green-100 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="h-5 w-5" />
+              <span>Building Type</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="text-lg px-4 py-2">
+                {data.buildingType.charAt(0).toUpperCase() + data.buildingType.slice(1)}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Rooms & Items */}
       <Card className="border-2 border-blue-100 shadow-lg">

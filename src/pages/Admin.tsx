@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AdminDashboard from '@/components/AdminDashboard';
-import AdminChat from '@/components/AdminChat';
+import SendBirdChat from '@/components/SendBirdChat';
 import ChatBot from '@/components/ChatBot';
 import { BarChart3, MessageSquare, Settings, Users, TrendingUp } from 'lucide-react';
 
@@ -94,7 +94,7 @@ const Admin: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="chat" className="space-y-6">
-                  <AdminChat />
+                  <SendBirdChat isAdmin={true} />
                 </TabsContent>
               </Tabs>
             </CardContent>

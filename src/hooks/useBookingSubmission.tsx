@@ -12,6 +12,8 @@ interface RoomData {
 }
 
 interface MovingData {
+  buildingType: string | null;
+  floors: string[];
   rooms: RoomData[];
   items: Record<string, number>;
   dateTime: any;
@@ -97,6 +99,8 @@ export const useBookingSubmission = () => {
       }
 
       const bookingData = {
+        buildingType: data.buildingType,
+        floors: data.floors,
         rooms: data.rooms,
         items: data.items,
         dateTime,
